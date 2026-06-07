@@ -33,14 +33,22 @@ that plays several footage segments in sequence — ideal for a post-win ending 
 photo). Everything is data in `build/scenes.py`.
 
 Hard-won quality rules — the user cares about these, don't regress them:
-1. **Cuts land on completed points.** Never cut mid-rally. `detect_shots.py`+`pick_ends.py` snap each
-   scene's END to a real camera-cut boundary; end on YOUR player *winning* where possible.
-2. **Footage is real match play.** Avoid establishing/branding shots (the court with the event logo),
-   slow-mo beauty close-ups, changeovers, and crowd cutaways in round scenes — pick the rally shots.
-3. **Identity is correct.** Know your player's kit colour. At a trophy ceremony the **runner-up is
-   presented and speaks FIRST** — the early cup shots are often the loser. Verify the win/celebration/
-   trophy footage is YOUR player, not the opponent. This is the single most common mistake.
-4. **Surface/venue consistency.** Don't drop indoor-hardcourt B-roll into a red-clay story.
+1. **Cuts land on completed points — and a few frames BEFORE the camera cut.** Never end mid-rally.
+   `detect_shots.py`+`pick_ends.py` snap each END to a real cut, then back off `EDGE_MARGIN` (~0.17s):
+   a detected boundary is the *first frame of the next shot*, so ending exactly on it flashes one frame
+   of crowd / reaction / handshake at the cut (the user notices). Hand-set/`_MANUAL` tins must subtract
+   the margin too: `tin = boundary - 0.17 - dur`.
+2. **Footage is real match play.** Avoid establishing/branding shots (court + event logo), slow-mo
+   beauty close-ups, changeovers, and crowd cutaways in round scenes — pick the rally shots.
+3. **Identity is correct — verify EVERY clip, including the hook/intro.** Anchor your player's kit
+   colour from a *known-champion* shot (trophy lift / match-winning collapse), then match it everywhere.
+   **Celebration / fist-pump close-ups are very often the OPPONENT** (a pumped player ≠ your player —
+   check the colour). At a trophy ceremony the **runner-up is presented FIRST**. Single most common mistake.
+4. **Show the exact moment the line asks for.** A round result / "he won" → that match's **match point**
+   (the deciding rally ending on the winning shot), found by scanning the reel's tail; the climactic
+   caption must land on the winning frame. A long `shots.json` "shot" can secretly merge rally+celebration+
+   graphic — eyeball it. No clean window of your player? Use a `clips=[…]` montage. → `footage-sourcing.md`.
+5. **Surface/venue consistency.** Don't drop indoor-hardcourt B-roll into a red-clay story.
 
 ## Workflow (in order)
 
@@ -62,7 +70,9 @@ cp ~/.claude/skills/vertical-commentary-video/scripts/*.py "$PROJ/build/"
 ### 2. Source footage → `references/footage-sourcing.md`
 Official YouTube (RG/WTA/ATP/league) via `yt-dlp`; `--cookies-from-browser chrome` for bot-gated
 ones. Verify each clip's resolution and **eyeball frames** (`contact_sheet.py`) — content, surface,
-and which player is which.
+and which player is which. Match every scene's clip to its `vo` (round result → that match's **match
+point**, scanned from the reel's tail) and **confirm the player by kit colour** anchored to a
+known-champion shot — the reference covers match-point/identity/montage selection in detail.
 
 ### 3. Voiceover → `references/voice-and-audio.md`
 Default = the user's cloned voice (slow it a touch so it breathes):
@@ -80,13 +90,16 @@ Aligns each caption line to the actual spoken words (fixes "captions out of sync
 It auto-re-transcribes when you re-record (staleness check). If you skip this, render falls back to
 proportional timing.
 
-### 5. Snap cuts to completed points
+### 5. Snap cuts to completed points (a few frames BEFORE the cut)
 ```bash
 python "$PROJ/build/detect_shots.py"      # -> shots.json
-python "$PROJ/build/pick_ends.py"         # -> proposed_tins.json + verify_ends.png
+python "$PROJ/build/pick_ends.py"         # -> proposed_tins.json + verify_ends.png  (auto EDGE_MARGIN ~0.17s)
 ```
-**Look at `verify_ends.png`** — no scene should end on the opponent, a replay, a logo card, or a
-beauty close-up. Fix via `END_OVERRIDES`/`AVOID_ENDS`/`lock` + manual tins; re-run.
+**Look at `verify_ends.png`** (now shows each scene's TRUE last frame) — every ending is a rally, never
+the opponent / a replay / a logo / a 1-frame crowd-reaction flash. Fix via `END_OVERRIDES`/`AVOID_ENDS`/
+`lock`+manual tins; re-run. For a **match-point** ending or a user-given window, hand-set the tin with
+the margin baked in: `tin = boundary - 0.17 - dur`, locked via `_MANUAL`. `shots.json` can merge a
+rally+celebration+graphic into one long "shot" — eyeball the window, never trust its duration alone.
 
 ### 6. Render + assemble
 ```bash

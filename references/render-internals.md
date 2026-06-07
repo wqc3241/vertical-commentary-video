@@ -36,9 +36,19 @@ single PNG persists for the whole scene (`eof_action=repeat`); caption windows u
 - Change a scene's clip: edit `src`/`tin` in `scenes.py`, re-run `pick_ends.py` (or set `lock:True`
   + a manual tin / `_MANUAL`), then `render.py scene <ID>` + re-assemble. No full re-render needed.
 - The user may hand you exact windows ("use this video 1:33–2:11"). Convert mm:ss→seconds, set
-  `tin = window_end - duration` so the scene ENDS at the window's clean cut, and `lock:True`.
+  `tin = window_end - EDGE_MARGIN(0.17) - duration` so the scene ENDS ~5 frames *inside* the window's
+  cut (not on it), and `lock:True`.
 - 5 scenes but only 3 footage windows? Slice the long window into consecutive sub-ranges across
   scenes; it reads as continuous clay tennis. Reuse across distant scenes is fine.
+
+## No stray frame at a cut (the 1-frame "jump")
+A detected shot boundary `e` is the **first frame of the next shot**, so a scene ending exactly at `e`
+shows that next-shot frame as its LAST frame — a 1-frame flash of crowd / reaction close-up / handshake
+/ logo right at the cut. `pick_ends.py` auto-applies `EDGE_MARGIN` (~0.17s ≈ 5 frames); **for hand-set
+or `_MANUAL` tins (match points, user windows) subtract it yourself.** To diagnose a reported jump,
+contact-sheet fine frames straddling the END (source `END-0.3 … END+0.1`): the cut is a content change —
+keep the END a few frames on the rally side. This also applies inside a `clips=[…]` montage: pick each
+clip's `t` so its slice (`scene_dur / n_clips`) stays within one clean shot, never spilling past a cut.
 
 ## Verify before delivering
 `contact_sheet.py video <out.mp4> 9` → Read it. Confirm: hook chip, tactic chips, the stats-card
