@@ -7,11 +7,13 @@ description: >-
   高光集锦, or 小红书视频 about a sports player, match, tournament, or any topic where real
   footage is narrated — e.g. "做一个关于XX选手的小红书竖屏视频", "把这场比赛剪成竖屏解说",
   "make a narrated highlights short about X", "turn this into a vertical reel with my voice".
-  It runs the whole pipeline: fact-check the script via web search, download official footage
-  with yt-dlp, detect rally/shot boundaries so cuts land on COMPLETED points, generate narration
-  in the user's cloned voice (F5-TTS) or align a recording the user provides, and render
-  blurred-letterbox 9:16 with burned Chinese captions, a stats card, and a final poster.
-  Trigger even when the user only describes the topic + format without listing every step.
+  It runs the whole pipeline: fact-check via web search, generate the 解说词 in the USER'S OWN
+  ChatGPT via their browser (mandatory), source native-vertical Instagram/TikTok clips FIRST
+  (landscape yt-dlp + blur letterbox only as per-scene fallback), detect rally/shot boundaries so
+  cuts land on COMPLETED points, generate narration in the user's cloned voice (F5-TTS) or align
+  a recording the user provides, and render 9:16 with burned Chinese captions, a stats card, and
+  a final poster. Trigger even when the user only describes the topic + format without listing
+  every step.
 ---
 
 # Vertical Commentary Video Builder
@@ -49,6 +51,35 @@ Hard-won quality rules — the user cares about these, don't regress them:
    caption must land on the winning frame. A long `shots.json` "shot" can secretly merge rally+celebration+
    graphic — eyeball it. No clean window of your player? Use a `clips=[…]` montage. → `footage-sourcing.md`.
 5. **Surface/venue consistency.** Don't drop indoor-hardcourt B-roll into a red-clay story.
+6. **NO logo / title / graphic CARDS inside any window — ever.** Trailers and tribute reels splice in
+   full-screen brand cards (the Netflix "N" reveal, sponsor logos, a "MAY 29" date card, "LEGEND"/
+   "CHAMPION" graphics, the Roland-Garros logo bumper). These are NOT brightness/flash outliers, so the
+   luma check will pass them — you must **visually scan every scene's window** (start + mid + EACH montage
+   clip's start, on the rendered video) and replace any that land on a card. A small **corner watermark**
+   baked into the source (e.g. "NETFLIX" top-right on every doc frame) is fine and unavoidable; only the
+   full-screen CARDS are the problem. The user has caught these repeatedly — scan for them every build.
+7. **Every clip must be factually true to its line.** The footage has to match what the words actually
+   say: the "2022 Australian Open" line uses the *real* 2022 AO match (Nadal–Medvedev), not a look-alike
+   hard-court match from another year; a "foot injury / 穆勒-魏斯综合症" line shows medical/X-ray footage,
+   not a family shot; "his rivals praised him" shows the rivals, not an unrelated interviewee; "戴维斯杯"
+   uses Davis Cup footage. When the user names a source/clip, use THAT one. Wrong-but-pretty ≠ acceptable.
+8. **No repeated or overlapping clips, and no decorative frame.** Every scene gets a DISTINCT,
+   non-overlapping footage window (audit `[tin, tin+dur]` per source — no two scenes share footage; don't
+   over-lean on one reel). The deliverable is **full-screen, edge-to-edge** — no inset border/frame drawn
+   by the overlay. → detection techniques in `footage-sourcing.md`.
+
+## Approval gates — NEVER one-shot the whole video (the user requires this, 2026-07)
+Build in stages and STOP for sign-off **twice**. Do NOT run TTS / render / assemble until BOTH gates pass —
+the user asked for this explicitly ("不要一次性生成所有成片…我同意了再合成视频"). Re-running voice + reframe +
+render is the expensive part; the gates exist so the user never pays for a full build of the wrong script or clips.
+1. **Script gate.** After harvesting the 解说词 from ChatGPT and mapping it to `scenes.py`, PRESENT the full
+   per-scene script (每个 scene 的 vo + 断句字幕, plus 标题/正文/tags) and WAIT for explicit approval / edits.
+   The user's own rewrite IS the quality bar — expect edits; do not proceed to footage on your own.
+2. **Footage gate.** After you've chosen every scene's clip (window + which player + full-bleed vs blur), PRESENT
+   the plan — one line per scene, e.g. `S2 老德对拉(ESPN 704,跟踪)→小黑握拳特写(02_W_TB 352)→…`, backed by the
+   contact-sheet frames you actually verified — and WAIT for approval before generating voice + rendering.
+Only after the footage gate is approved do you run steps 3→7. (A tiny tweak the user requests mid-build — swap one
+clip, fix one line — doesn't need a fresh gate; a new script or a new footage set does.)
 
 ## Workflow (in order)
 
@@ -60,19 +91,59 @@ cp ~/.claude/skills/vertical-commentary-video/scripts/*.py "$PROJ/build/"
 ```
 
 ### 1. Lock the script (TEXT FIRST — get sign-off before building visuals)
-- Recent/ongoing event → **verify every fact with web search** (scores, opponents, records, dates;
-  treat post-cutoff dates as unknown until checked). Names/scores go on screen — get them exact.
-- Write `build/scenes.py` from `scenes_template.py`. Per scene: `vo` (spoken, **Chinese numerals**
-  六比三 so TTS doesn't read English digits) + a `CAPTIONS[id]` list of the **display lines** (the
-  user's own 断句, **digits** 6-3 for clarity). Each caption line must equal the spoken words
-  (only numerals differ) or caption timing drifts. Fill `RESULTS_CARD`/`POSTER`. Present + wait.
+- Recent/ongoing event → **verify every fact with web search FIRST** (scores, opponents, records,
+  dates; treat post-cutoff dates as unknown until checked). Names/scores go on screen — get them
+  exact. These verified facts feed the ChatGPT prompt below so it can't invent numbers.
+- **MANDATORY — generate the 解说词 in the USER'S OWN ChatGPT via their browser; never just write
+  it yourself.** The user has had to correct this repeatedly — skipping it is the #1 process
+  mistake on this skill. Follow `~/.claude/skills/xhs-personal-vlog/references/copy-generation.md`:
+  Claude-in-Chrome → chatgpt.com → open their copy project (`/g/g-p-…/project` URL from the DOM,
+  clicking the name only expands it) → send ONE single-line prompt (newlines auto-send!) that
+  includes the topic, the VERIFIED facts, spoken length (~60–90s), ≤20-char sentences, numbered
+  scenes, and asks for 标题/正文/tags too → wait 30–60s → harvest with `get_page_text`. Save the
+  publish copy to `<project>/小红书发布文案.md`.
+- **Copy-style rules the user requires — put these IN the ChatGPT prompt AND enforce when you map to captions
+  (2026-07 feedback):**
+  1. **数字一律用阿拉伯数字**(比分 3-6、时间 5小时15分、纪录 第15次、25冠),**不要中文数字**。
+     ⚠️ 用户口中的「罗马数字」= 阿拉伯数字(西文数字 0-9),不是真的 Roman numerals — 别写成 XII。
+     (念白 `vo` 仍要中文数字给 F5-TTS,见下条;GPT 出稿用阿拉伯数字,你在 CAPTIONS 里保留数字、在 `vo` 里转中文。)
+  2. **语句通顺自然、口语化,不要浮夸 / 过度夸张的说法。**
+  3. **少用「不是…而是…」这类转折句式**(以及其它生硬的对比转折)。
+- Treat the output as a DRAFT. **→ SCRIPT GATE: present the full script (per-scene vo + 断句 + 标题/正文/tags,
+  with any factual/style fixes you made) and WAIT for the user's approval before touching footage.** Only if the
+  browser/ChatGPT is genuinely unavailable may you draft the script yourself — and say so explicitly when presenting.
+- **After** the script is approved, map it to `build/scenes.py` from `scenes_template.py`. Per scene: `vo`
+  (spoken, **Chinese numerals** 六比三 so TTS doesn't read English digits — convert the GPT digits here) +
+  a `CAPTIONS[id]` list of the **display lines** (the user's own 断句, **阿拉伯 digits** 6-3). Each caption
+  line must equal the spoken words (only numerals / the 比↔- score separator differ) or caption timing drifts;
+  keep every caption line **≤13 chars** so it never overflows (render.py wraps at 820px as a backstop). Fill
+  `RESULTS_CARD`/`POSTER`. Then move to footage — the **next** stop is the Footage gate, not the render.
 
-### 2. Source footage → `references/footage-sourcing.md`
-Official YouTube (RG/WTA/ATP/league) via `yt-dlp`; `--cookies-from-browser chrome` for bot-gated
-ones. Verify each clip's resolution and **eyeball frames** (`contact_sheet.py`) — content, surface,
-and which player is which. Match every scene's clip to its `vo` (round result → that match's **match
-point**, scanned from the reel's tail) and **confirm the player by kit colour** anchored to a
-known-champion shot — the reference covers match-point/identity/montage selection in detail.
+### 2. Source footage — VERTICAL-FIRST → `references/vertical-footage-and-instagram.md`
+**DEFAULT: use真·竖屏 footage wherever possible — the user has emphasised this repeatedly; the
+dark-blur letterbox is the FALLBACK, not the look.** Per scene, in order of preference:
+1. **Native-vertical Instagram / TikTok reel** — search the user's logged-in IG in their browser
+   (Claude-in-Chrome): keyword search (`<player> match point / forehand / celebration / edits`),
+   plus official accounts' Reels tabs (@rolandgarros, @wimbledon, @atptour, the players). Pull
+   `/reel/` permalinks from the DOM, download `yt-dlp --cookies-from-browser chrome`, wire in via
+   `build_ig.py` (→ `build/reframed/` keys). Most reels are 720×1280 — upscale lanczos; tell the
+   user which scenes are IG-720p vs 1080 so they can choose.
+2. **Full-bleed tracked crop** of a landscape reel (`reframe_scenes.py`, video-autoreframe skill) —
+   for beats that only exist in broadcast footage (e.g. THE match point of a specific round):
+   download the official YouTube reel per `references/footage-sourcing.md`, then crop-track it.
+3. **Classic blur-letterbox landscape** ONLY where neither works (ambiguous 2-player wide rally the
+   tracker can't follow, or the user prefers the broadcast frame) — and say which scenes fell back
+   and why when presenting.
+Mix per scene; `lock: True` every full-bleed/IG scene. Verify each clip's resolution and **eyeball
+frames** (`contact_sheet.py`) — content, surface, and which player is which. Match every scene's
+clip to its `vo` (round result → that match's **match point**, scanned from the reel's tail) and
+**confirm the player by kit colour** anchored to a known-champion shot — `footage-sourcing.md`
+covers match-point/identity/montage selection in detail; identity checks apply to IG clips too
+(search returns look-alikes and fan edits with baked-in text cards — reject those).
+**→ FOOTAGE GATE: present the per-scene clip plan (with the contact-sheet frames you verified) and WAIT for
+approval before step 3.** Montage note: clips are sliced **equally** (`D/n`), so a caption beat can spill onto the
+next clip — order clips so the important line (the punchline / the named player) lands on the RIGHT clip, and say
+so if a minor spill remains.
 
 ### 3. Voiceover → `references/voice-and-audio.md`
 Default = the user's cloned voice (slow it a touch so it breathes):
@@ -101,17 +172,28 @@ the opponent / a replay / a logo / a 1-frame crowd-reaction flash. Fix via `END_
 the margin baked in: `tin = boundary - 0.17 - dur`, locked via `_MANUAL`. `shots.json` can merge a
 rally+celebration+graphic into one long "shot" — eyeball the window, never trust its duration alone.
 
-### 6. Render + assemble
+### 6. Render + assemble  (only after BOTH the script gate AND footage gate are approved)
 ```bash
 python "$PROJ/build/render.py" all        # overlay + cards + per-scene 9:16 (montage-aware)
 python "$PROJ/build/render.py" assemble   # cloned/TTS audio -> $PROJ/<OUTPUT_NAME>
 # OR, recorded take: python build/render.py assemble-voice build/voice/full48k.wav
+# OR, recorded take + each clip's ORIGINAL audio mixed in quietly under the voice (the user likes this):
+python build/assemble_ambient.py build/voice/full48k.wav 0.30   # gain 0.14 was too quiet → 0.30 audible
 ```
+**16:9 landscape variant** (the user often wants this too): `render16.py` reuses the SAME `scenes.py`,
+`durations.json` and `captions.json` and renders 1920×1080 (footage fills the frame, cards re-laid-out);
+`assemble16.py` muxes the same voice + ambient. So one project yields both 9:16 and 16:9.
 
-### 7. Verify + deliver
+### 7. Verify + deliver — LOOK at every scene, not just a 14-frame sweep
 `contact_sheet.py video <out.mp4> 14` → Read it. Confirm chips, captions in sync, card **scores +
 names**, the win/trophy is YOUR player, the poster. For recorded takes, sync-spot-check (reference).
-Deliver the MP4. Re-render only changed scenes (`render.py scene <ID>`) when iterating.
+**Then run the three checks the user keeps catching (see `footage-sourcing.md`):**
+1. **Logo/card scan** — tile a frame from every scene's start + mid + each montage clip start, Read it,
+   and replace any window that lands on a Netflix/sponsor/title/date CARD (luma checks miss these).
+2. **Flash-free** — luma-profile each source (`signalstats`) and confirm no window has a near-black or
+   spike frame (`pick_clean.py`); fix the reported ones AND the ones they didn't spot.
+3. **Distinct + factual** — no two scenes share a window; every clip is literally true to its line.
+Deliver the MP4. Re-render only changed scenes (`render.py scene <ID>` / `render16.py scene <ID>`).
 
 ## Why it looks the way it does
 - **Dark moving blur fill**: the footage is scaled-to-cover, blurred, and **darkened ~0.42** behind
@@ -125,7 +207,14 @@ Deliver the MP4. Re-render only changed scenes (`render.py scene <ID>`) when ite
 ## Engine scripts (`scripts/`, copied into `build/`)
 `scenes_template.py` (config) · `detect_shots.py` · `pick_ends.py` · `align.py` (align a recording) ·
 `caption_times.py` (word-exact captions) · `render.py` (`all`/`scene <ID>`/`assemble`/`assemble-voice`/
-`assets`) · `tts_say.py` (robotic draft) · `contact_sheet.py` · `shotsheet.py`.
+`assets`) · `tts_say.py` (robotic draft) · `contact_sheet.py` · `shotsheet.py` ·
+`pick_clean.py` (flash-free window finder from `/tmp/lum_*.txt` signalstats profiles) ·
+`assemble_ambient.py` (voice + each clip's original audio mixed low) ·
+`render16.py` + `assemble16.py` (16:9 / 1920×1080 variant from the same scenes/timing/captions) ·
+`reframe_scenes.py` (full-bleed: crop landscape→9:16 tracking the player, via video-autoreframe) ·
+`build_ig.py` (scale native-vertical Instagram clips → `build/reframed/` keys). render.py prefers a
+`build/reframed/<stem>_<tin>_<dur>.mp4` if present (full-bleed) else blur-fill — see
+`references/vertical-footage-and-instagram.md`.
 
 Voice cloning lives at `/Volumes/Storage/voice-clone/` (venv + `clone.py` + the user's reference clip;
 `VOICE_SPEED` env controls pace). Recreate per `references/voice-and-audio.md` if missing.

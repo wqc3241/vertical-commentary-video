@@ -51,7 +51,7 @@ def make_overlay():
         elif y>1440: a=int(35+180*((y-1440)/(H-1440)))  # 35 -> 215 (bottom, behind caption)
         else:        a=35
         d.line([(0,y),(W,y)],fill=(*clay,a))
-    for i,al in enumerate([80,55,30]): d.rectangle([i*7,i*7,W-i*7,H-i*7],outline=(0,0,0,al),width=7)
+    # NOTE: no inset border/frame — the user wants full-screen, edge-to-edge (don't re-add rectangles).
     img.save(os.path.join(PNG,"overlay.png"))
 
 # ---------- overlay PNGs ----------
@@ -72,7 +72,7 @@ def _wrap_body(text, sz, maxw):
 
 def make_caption_png(text, path):
     img=Image.new("RGBA",(W,H),(0,0,0,0)); d=ImageDraw.Draw(img)
-    sz=56; lines=_wrap_body(text,sz,900); lh=74
+    sz=56; lines=_wrap_body(text,sz,820); lh=74
     tw=max(fbody(sz).getlength(l) for l in lines); th=lh*len(lines); px,py=40,22
     bx0,bx1=(W-tw)/2-px,(W+tw)/2+px; by1=1620; by0=by1-th-py*2
     rrect(d,[bx0,by0,bx1,by1],28,(0,0,0,160)); y=by0+py
@@ -116,7 +116,10 @@ def make_poster_card(path):
     draw_center(d,612,cfg.get("vs","VS"),116,GOLD,sw=2,sfill=(0,0,0,180))
     draw_center(d,800,cfg.get("right",""),88,WHITE,sw=2,sfill=(0,0,0,180))
     if cfg.get("date"):    draw_center(d,1006,cfg["date"],48,(238,226,214),disp=False)
-    if cfg.get("tagline"): draw_center(d,1228,cfg["tagline"],130,WHITE,sw=2,sfill=(0,0,0,180))
+    if cfg.get("tagline"):
+        tl=cfg["tagline"]; ts=130; maxw=W-150
+        if run_w(tl,ts)>maxw: ts=int(ts*maxw/run_w(tl,ts))
+        draw_center(d,1228+(130-ts)//2,tl,ts,WHITE,sw=2,sfill=(0,0,0,180))
     img.save(path)
 
 # ---------- scene render: gradient bg + centred footage strip + overlays ----------
@@ -142,7 +145,19 @@ def caps_for(sc):
     return out
 
 def _render_base(src, tin, dur, card, out):
-    """bg(dark moving blur)+clay overlay+centred footage strip -> out (no chip/caps)."""
+    """Full-bleed reframed 9:16 clip (if available) else dark-blur-fill centred strip."""
+    stem=os.path.splitext(os.path.basename(src))[0]
+    reframed=os.path.join(BUILD,"reframed",f"{stem}_{tin:.3f}_{dur:.3f}.mp4")
+    if (not card) and os.path.exists(reframed):
+        subprocess.run(["ffmpeg","-y","-loglevel","error",
+            "-i",reframed,
+            "-loop","1","-t",f"{dur:.3f}","-i",os.path.join(PNG,"overlay.png"),
+            "-filter_complex",
+            f"[0:v]fps={FPS},scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
+            f"eq=brightness=-0.04:saturation=1.05[fg];[fg][1:v]overlay=0:0[v]",
+            "-map","[v]","-an","-r",str(FPS),"-c:v","libx264","-preset","medium","-crf","18",
+            "-pix_fmt","yuv420p","-t",f"{dur:.3f}",out],check=True)
+        return
     bgdim=0.52 if card else 0.42; dim=0.40 if card else 0.04
     subprocess.run(["ffmpeg","-y","-loglevel","error",
         "-ss",f"{tin:.3f}","-t",f"{dur:.3f}","-i",src,

@@ -67,7 +67,7 @@ _p = _os.path.join(_d, "proposed_tins.json")
 if _os.path.exists(_p):
     _ov = _json.load(open(_p))
     for _s in SCENES:
-        if _s["id"] in _ov: _s["tin"] = _ov[_s["id"]]
+        if _s["id"] in _ov and not _s.get("lock"): _s["tin"] = _ov[_s["id"]]  # locked scenes keep hand-set tin
 _MANUAL = {}     # e.g. {"S3": 0.0} — hand-placed in-points win over everything
 for _s in SCENES:
     if _s["id"] in _MANUAL: _s["tin"] = _MANUAL[_s["id"]]

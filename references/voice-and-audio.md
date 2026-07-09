@@ -23,6 +23,15 @@ small script and re-run `caption_times.py` (its staleness check re-transcribes t
 
 One-off line: `... clone.py say "要合成的中文" /tmp/x.wav`.
 
+**Names / polyphones can be mis-voiced — test, don't assume (2026-07: "德约"→"德于").** F5-TTS read the
+Djokovic nickname **德约** (dé-**yuē**) as **dé-yú** ("等于/德于") — the polyphone 约 came out wrong, and the user
+caught it. When a name/term matters, synth 3-4 candidate spellings in a carrier sentence, whisper each, and pick
+the one whose ASR comes back right (wrong reading shows up as a different homophone — 德于/德月/德腰). Fixes that
+work: use a spelling the model gets right (here the user's other nickname **老德** lǎo-dé, which also fit the
+"39-year-old veteran" theme), or the full name. **Change BOTH `vo` and the matching CAPTION** so audio and text
+stay consistent (never leave the caption showing the old name). This is separate from the reference-clip **leak**
+bug — see the [[cloned-voice-transcript-check]] memory / `voice_ref_tennis_backup.*` fix.
+
 **If the home is missing**, recreate it:
 ```bash
 export UV_CACHE_DIR=/Volumes/Storage/.uvcache
