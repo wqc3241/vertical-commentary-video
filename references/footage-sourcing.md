@@ -86,6 +86,52 @@ N-second window exists), build the scene as `clips=[(stem,t1),(stem,t2)]` — tw
 verified are your player. (Used for the intro "fight" beat and the post-win cup-raise.) Each clip plays
 an equal slice of the scene; pick `t` so each slice stays inside one clean shot.
 
+### Factual relevance — the clip must be the REAL thing the line names
+Pretty-but-wrong is a defect the user WILL catch. The footage has to be literally true to the words:
+- A specific match/event line → that exact match (the **2022 AO** line needs the real 2022 Nadal–Medvedev
+  final, NOT a 2012 Nadal–Djokovic match used as a "hard-court stand-in"). Download the real one.
+- A medical / injury line (穆勒-魏斯综合症, 脚伤) → medical / X-ray / treatment footage, not a family or
+  crowd shot. A "rivals praised him" line → the rivals (Federer/Djokovic), not an unrelated interviewee.
+  "戴维斯杯" → Davis Cup footage. "红土/法网" → clay.
+- **When the user gives you a source URL or a timestamp range, use exactly that** (e.g. "use 11:01–13:01
+  from this video for the close-ups"). Don't substitute a different clip because it's easier.
+
+### Avoid logo / brand / title CARDS — and the visual-scan that catches them
+Trailers and tribute reels splice in full-screen **brand/title cards**: the Netflix "N" reveal, a
+"MAY 29" date card, "LEGEND"/"CHAMPION" graphics, a Roland-Garros logo bumper, sponsor stings. Dropping
+a window on one of these is the single most-reported mistake on this project.
+- They are **NOT flash/brightness outliers** (a logo on black is mid-grey on average), so `pick_ends` and
+  the luma check below will NOT flag them. The only reliable catch is to **look**.
+- After every render, **scan every scene's window on the rendered video**: extract a frame at each scene
+  start (+0.4s), its mid, and **each montage clip's start**, tile them with the scene id, and Read the
+  sheet. Replace any window that opens on / passes through a card.
+- A small **corner watermark** baked into the source (e.g. "NETFLIX" top-right on every doc frame) is
+  fine and unavoidable — only full-screen CARDS are the problem. Brand cards cluster at a reel's head/
+  tail and at segment transitions; tribute reels also drop the event logo between shots.
+
+### Flash-free windows via a per-frame luma profile (when sources are cut-dense)
+Trailers / montage tributes have black fade-frames, white-flash transitions and near-black tails that
+cause a 1–N frame flicker at a cut. To pick windows that contain none of them WITHOUT eyeballing every
+frame, profile each source's luma ONCE and reject any window with a near-black frame or a 1–2 frame
+spike vs its neighbours:
+```bash
+# per-frame average luma (YAVG) for a source, one pass:
+ffmpeg -hide_banner -i source/<stem>.mp4 -vf "signalstats,metadata=print:file=/tmp/lum_<stem>.txt" -an -f null -
+```
+A window `[t, t+dur]` is "clean" if no frame YAVG < ~18 (near-black) and no frame deviates > ~32 from its
+local-neighbour median (a bright/dark spike). Scan candidate `tin`s and keep the cleanest that doesn't
+overlap another scene's window. (This project keeps a `pick_clean.py` helper that does exactly this:
+loads `/tmp/lum_*.txt`, `clean(stem,t0,t1)`, and finds nearest-clean windows per scene. Copy it in.)
+The user reported flashes at five timestamps once; this profiling found those PLUS seven more they hadn't
+spotted — run it across ALL scenes, not just the reported ones.
+
+### Distinct windows — no repeated clips
+Every scene must use a DISTINCT, non-overlapping window. Audit it: for each source, list every scene's
+`[tin, tin+dur]` (montage clips count individually) and flag any pair that intersects. Don't over-
+concentrate on one favourite reel — spread load across all downloaded sources, or the video feels
+repetitive even when no two windows are byte-identical. Re-audit after any retime (durations change ⇒
+window ends move).
+
 ## Avoid the 1-frame jump at every cut (EDGE_MARGIN)
 A detected boundary `e` is the **first frame of the NEXT shot**. Ending a scene exactly at `e` flashes
 one frame of crowd / reaction / handshake / logo at the cut. `pick_ends.py` now backs every end off by
