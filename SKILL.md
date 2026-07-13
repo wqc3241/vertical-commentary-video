@@ -93,6 +93,13 @@ Hard-won quality rules — the user cares about these, don't regress them:
    under the narration at gain 0.30 (0.14 proved too quiet). Voice-only `render.py assemble` is a draft,
    not the deliverable. Photo/silent sources get auto-silence (handled in the script). Speech-bearing
    windows (victory speech, on-court interview) are a feature — let the real voice breathe underneath.
+11. **Every deliverable ends with the user's branded ending + ships as 1080p 60fps (standing rule
+   2026-07-13).** After assemble_ambient/assemble16, ALWAYS run `finalize_ending.py <deliverable>`:
+   appends `assets/ending.mov` (点赞收藏关注 card, native 1080×1920) — kept vertical for 9:16, center-
+   cropped (`crop=1080:608:0:738`) for 16:9 — and re-encodes the whole file to 1080p@60fps. Idempotent
+   (skips if the `finalized-with-ending` tag is present). Single-pass filter_complex concat dies on this
+   Mac's ffmpeg — the script's 3-step method (transcode both parts to identical specs → concat -c copy)
+   is deliberate, don't refactor. If the user hands you a NEW ending clip, replace `assets/ending.mov`.
 
 ## Approval gates — NEVER one-shot the whole video (the user requires this, 2026-07)
 Build in stages and STOP for sign-off **twice**. Do NOT run TTS / render / assemble until BOTH gates pass —
@@ -218,10 +225,13 @@ python "$PROJ/build/preview_parts.py" 0.30           # -> 预览_A..E.mp4 (part 
 python build/assemble_ambient.py build/audio_master.wav 0.30    # TTS voice master + ambient -> $PROJ/<OUTPUT_NAME>
 # recorded take instead: python build/assemble_ambient.py build/voice/full48k.wav 0.30
 # (voice-only render.py assemble / assemble-voice = drafts only, not the deliverable)
+# 6d. ALWAYS finish with the branded ending + 1080p60 re-encode (rule 11):
+python build/finalize_ending.py "$PROJ/<OUTPUT_NAME>"
 ```
 **16:9 landscape variant** (the user often wants this too): `render16.py` reuses the SAME `scenes.py`,
 `durations.json` and `captions.json` and renders 1920×1080 (footage fills the frame, cards re-laid-out);
-`assemble16.py` muxes the same voice + ambient. So one project yields both 9:16 and 16:9.
+`assemble16.py` muxes the same voice + ambient. So one project yields both 9:16 and 16:9 — run
+`finalize_ending.py` on that output too (it auto-detects 16:9 and crops the ending to landscape).
 
 ### 7. Verify + deliver — LOOK at every scene, not just a 14-frame sweep
 `contact_sheet.py video <out.mp4> 14` → Read it. Confirm chips, captions in sync, card **scores +
@@ -297,7 +307,8 @@ innerText, then JS-click `button[data-testid="send-button"]`. Newlines auto-send
 `assets`) · `tts_say.py` (robotic draft) · `contact_sheet.py` · `shotsheet.py` ·
 `pick_clean.py` (flash-free window finder from `/tmp/lum_*.txt` signalstats profiles) ·
 `assemble_ambient.py` (FINAL assembler: voice + each clip's original audio at 0.30; silent sources →
-auto-silence) · `regen_tts.py` (ANTI-LEAK cloned TTS: per-clip whisper verify + retries — the default
+auto-silence) · `finalize_ending.py` (LAST step, rule 11: append `assets/ending.mov` + re-encode 1080p60;
+auto 9:16/16:9) · `regen_tts.py` (ANTI-LEAK cloned TTS: per-clip whisper verify + retries — the default
 voice step) · `check_tts.py` (transcript-check report) · `preview_parts.py` (per-part 预览_A..E.mp4,
 voice+ambient — the segment-preview checkpoint) · `build_photos.py` (photos → 9:16 Ken-Burns via PIL
 subpixel affine; never zoompan) ·
