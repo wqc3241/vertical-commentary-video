@@ -239,56 +239,48 @@ names**, the win/trophy is YOUR player, the poster. For recorded takes, sync-spo
 Deliver the MP4. Re-render only changed scenes (`render.py scene <ID>` / `render16.py scene <ID>`).
 
 ### 8. 小红书封面图 — deliver WITH the 发布文案, every video (user standard, 2026-07)
-One consistent cover style across the account. **DEFAULT MODE (user decision 2026-07-12): GPT paints
-the COMPLETE cover, text included** — in the SAME project chat that wrote the 解说词 (it has full
-context). 4o renders Chinese accurately when the prompt spells every string verbatim and demands it.
-1. **Send ONE single-line prompt** from this fixed template — only the 【】 slots vary per video
-   (the four text zones + layout language are FROZEN; they ARE the account style):
-   > 再生成一版完整封面,这次把文字直接画进图里,所有汉字必须逐字准确、不能错字漏字多字。竖版3比4。
-   > 文字共四处:第一处,画面上部居中大标题「【主标,≤6字,压缩自小红书标题】」,厚重宋体风格衬线大字,
-   > 白色带深色描边;第二处,大标题正下方一行金色副标题「【副标,≤10字】」,略小的金黄色衬线字;
-   > 第三处,左上角红棕色圆角胶囊标签,内有白色小字「网球故事」,标签不要压到大标题;第四处,画面底部
-   > 居中白色小字「【主人公人名】」,两侧各一个金色小圆点。人物主体:【主人公外形+本片高光瞬间特写,
-   > 如:白色网球服白遮阳帽,双手捧温布尔登金盘、眼含泪光微微望天】,人物占画面中下部三分之二,头顶
-   > 不要碰到副标题文字。写实电影感,【光线/场景,如:金色黄昏逆光,中央球场深绿背景大幅虚化】,浅景深。
-   > 除上述四处文字外,画面内不要出现其他任何文字、水印或logo。
-   高光瞬间 = the video's emotional peak (夺冠=捧杯, 逆转=怒吼, 告别=背影…). Wait 60-120s.
-2. **Composer gotchas (each one happened):** the `computer type` action can silently DROP characters
-   (「21」 and parens vanished) and cmd+A-delete can fail, so text ACCUMULATES. Reliable path: focus the
-   composer, then via `javascript_tool` run `execCommand('selectAll')+('delete')+('insertText', P)`,
-   VERIFY the four text substrings are present in `#prompt-textarea` innerText, then JS-click
-   `button[data-testid="send-button"]`. Newlines auto-send — the prompt must be ONE line.
-3. **Download via the bridge** (`scripts/cover_bridge.py`, port 8765). chatgpt.com's CSP blocks
-   page-fetch to 127.0.0.1 AND server-side urllib gets 403 on the signed oaiusercontent URL — the
-   working chain: in-page `fetch(img.src)` → FileReader→b64 (async JS must write results to
-   `window.__r`; direct await returns `{}`) → hidden `<form method=POST>` submit (forms bypass
-   connect-src) → navigate the tab back.
-1b. **REAL-PHOTO cover (user's preferred mode, 2026-07-12): attach a real championship photo (IG/
-   own-footage frame) and have GPT ONLY add the typography.** Find the photo first (subject's IG /
-   official-account collab posts / a full-res frame from own footage), verify identity, then prompt:
-   「以我附上的这张她本人的真实夺冠照片为封面底图:保留照片里真实的人物、姿势和背景,不要重绘、替换或
-   美化人物,只做封面排版——【四处文字模板】;竖版3比4,可用照片的虚化延展补足空间」. Output keeps the
-   authentic photo (face/pose/crowd) with the account typography on top.
-   **The ONLY working way to attach a file to chatgpt.com from this harness** (everything else is
-   blocked: file_upload whitelist, CSP blocks fetch/img/localhost, synthetic cmd+V has no clipboard,
-   upload_image can't read screenshots): compress the photo to ≤20KB JPEG → base64 (~26K chars) →
-   inject into the page via `javascript_tool` in **3200-char chunks** (`window.__P+='...'`, verify
-   cumulative length each call — self-authored longer literals get truncated) → `atob`→Uint8Array→
-   `new File` → `new DataTransfer` → dispatch `ClipboardEvent('paste',{clipboardData:dt})` on the
-   focused `#prompt-textarea` → attachment thumbnail appears → insertText the prompt → JS-click send.
-   ~10 tool calls; verify the JPEG magic (0xFFD8) after assembly.
-3b. **Pose/composition fixes on AI-generated art = EDIT THE PREVIOUS IMAGE** (2026-07-12: "捧起金盘"
-   rendered as 端盘子; one message fixed it): 「基于你上一张生成的封面图修改:人物动作改为【双手将奖杯
-   高举过头顶庆祝】,其余全部不变」. Write pose language PRECISELY (高举过头顶≠捧起≠端着).
-4. **逐字校验 (MANDATORY — 4o's #1 failure is mangled hanzi):** crop the four text zones at FULL
-   resolution, Read them, and check EVERY character stroke-level against the intended strings. Any
-   wrong/extra/missing char → tell GPT which char is wrong and regenerate (same chat). Then upscale
-   to 1242×1656 lanczos → `封面图.jpg`, delivered together with `小红书发布文案.md`.
-5. **Fallback (art-only + local typography):** if 4o repeatedly fails the text check, ask it for the
-   SAME cover 但画面内不要任何文字 + 顶部1/4负空间, then burn the text with
-   `scripts/make_cover.py <base> 封面图.jpg "主标" ["副标"] ["人名"] [角标]` — pixel-identical fonts
-   (Songti SC Black 主标 / Songti SC Bold 金色副标 / bottom tracked name + gold dots / #C4563A pill,
-   3:4 1242×1656, subject layer 86% bottom-anchored). Art re-prompts vary ONLY the 【高光/光线】 slots.
+One consistent cover style across the account, made in the SAME project chat that wrote the 解说词.
+The account typography is FROZEN — four text zones, only the 【】 slots vary per video:
+> 大标题「【主标,≤6字,压缩自小红书标题】」厚重宋体衬线白字深色描边 · 其下金色副标题「【副标,≤10字】」·
+> 左上角红棕圆角胶囊白字「网球故事」(不压标题) · 底部居中白字「【主人公人名】」两侧金色小圆点 ·
+> 竖版3比4 · 所有汉字逐字准确 · 除四处文字外无任何其他文字/水印/logo
+
+**MODE A — 真实照片底图 + GPT 只做排版 (THE DEFAULT; user decision 2026-07-13,不要纯AI画人):**
+1. **Find the real photo**: the subject's IG / official collab posts (@wta·@wimbledon×player "champion"
+   posts are gold) / a full-res frame from own footage. Prefer 竖版, high-emotion 夺冠特写 (捧杯/举杯/
+   泪目). Identity-verify via the rule-3 ladder. Download: IG scontent → hidden-form POST the signed URL
+   to `scripts/cover_bridge.py` (server-side fetch works for IG, unlike oaiusercontent).
+2. **Attach it to the ChatGPT chat** — the ONLY path that works from this harness (file_upload
+   whitelist, CSP fetch/img-to-localhost, synthetic cmd+V, upload_image: ALL blocked): compress to
+   ≤20KB JPEG → base64 (~26K chars) → inject via `javascript_tool` in **3200-char chunks**
+   (`window.__P+='...'`, verify cumulative length EVERY call — longer self-authored literals silently
+   truncate) → `atob`→`Uint8Array` (check JPEG magic 0xFFD8) → `new File`→`new DataTransfer` →
+   dispatch `ClipboardEvent('paste',{clipboardData:dt})` on the focused `#prompt-textarea` → confirm
+   the attachment thumbnail appears (screenshot). ~10 tool calls.
+3. **Prompt** (one line, insertText): 「以我附上的这张她本人的真实夺冠照片为封面底图:保留照片里真实的
+   人物、姿势和球场背景,不要重绘、替换或美化人物,只在这张照片上做封面排版——【四处文字模板】;画面按
+   竖版3比4输出,可在上下用照片的虚化延展补足空间,所有汉字必须逐字准确。」 The output keeps the
+   authentic face/pose/crowd with the typography on top. Wait 60-120s.
+4. **逐字校验 (MANDATORY — 4o's #1 failure is mangled hanzi):** download the result (in-page
+   `fetch(img.src)`→b64→form-POST to the bridge; async JS must write to `window.__r`, direct await
+   returns `{}`), crop the four text zones at FULL resolution, Read them, check EVERY character.
+   Any wrong/extra/missing char → tell GPT which char and regenerate in the same chat.
+5. Upscale to 1242×1656 lanczos → `封面图.jpg`, delivered together with `小红书发布文案.md`.
+
+**MODE B — 全AI直出 (fallback when no usable real photo exists):** same four-text-zone template plus
+人物主体描述【外形+本片高光瞬间特写】+ 写实电影感【光线/场景】+ 人物占中下2/3、头顶不碰副标题。
+高光瞬间 = the video's emotional peak (夺冠=举杯, 逆转=怒吼, 告别=背影…). Pose language must be
+PRECISE (高举过头顶≠捧起≠端着 — "捧起" rendered as 端盘子 once). Pose/composition fixes = EDIT the
+previous image (「基于你上一张生成的封面图修改:【改动】,其余全部不变」), never re-prompt from scratch.
+
+**MODE C — last resort (4o repeatedly mangles text):** ask for the art 不带任何文字 + 顶部1/4负空间,
+then burn typography locally with `scripts/make_cover.py <base> 封面图.jpg "主标" ["副标"] ["人名"]
+[角标]` (Songti SC Black/Bold, gold sub, tracked name + gold dots, #C4563A pill, 1242×1656).
+
+**Composer gotchas (each one happened):** `computer type` can silently DROP characters (「21」+parens
+vanished) and cmd+A-delete can fail so text ACCUMULATES → always `javascript_tool` with
+`execCommand('selectAll')+('delete')+('insertText',P)`, VERIFY key substrings in `#prompt-textarea`
+innerText, then JS-click `button[data-testid="send-button"]`. Newlines auto-send — ONE line only.
 
 ## Why it looks the way it does
 - **Dark moving blur fill**: the footage is scaled-to-cover, blurred, and **darkened ~0.42** behind
