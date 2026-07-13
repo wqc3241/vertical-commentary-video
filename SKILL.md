@@ -256,10 +256,15 @@ locally so the font is pixel-identical every time (AI-rendered text drifts; loca
    the working chain is: in-page `fetch(img.src)` → FileReader→b64 (store on `window`, async JS must
    write results to `window.__r` — direct await returns `{}`) → hidden `<form method=POST>` submit to
    the bridge (forms bypass connect-src) → navigate the tab back to the chat.
-3. **Burn the unified typography** — `scripts/make_cover.py <base> 封面图.jpg "主标题" "副标题" [角标]`:
-   3:4 1242×1656 · main title WHITE + black stroke (Hiragino Sans GB **W6**, the caption font) · sub-line
-   GOLD #F2C94C · top-left series pill 角标 #C4563A (default **"网球故事"** — keep it so the account
-   reads as a series). Title = compressed from the approved 小红书标题 (main ≤7 chars, sub ≤10).
+3. **Burn the unified typography** — `scripts/make_cover.py <base> 封面图.jpg "主标题" ["副标题"]
+   ["人名"] [角标]` (template v2, user-approved 2026-07-12; params are FROZEN — they are the account style):
+   3:4 1242×1656 · bg = base blur26+darken, sharp subject layer at **86% width, bottom-anchored** (subject
+   never touches the title; more top space) · main title **Songti SC Black**(宋体特黑, 有个性且直观 — the
+   user rejected plain 黑体) white + black stroke · sub-line **Songti SC Bold** GOLD #F2C94C · title block
+   starts y=175 (clear of the pill row — they overlapped in v1) · bottom name line "诺 斯 科 娃" tracked,
+   white + gold dots over a bottom gradient · top-left series pill 角标 #C4563A Hiragino W6 (default
+   **"网球故事"**). Title = compressed from the approved 小红书标题 (main ≤6 chars, sub ≤10) + the
+   protagonist's name for the bottom line.
 4. Deliver `封面图.jpg` together with `小红书发布文案.md`. If the user dislikes the art, re-prompt
    step 1 varying ONLY the 【高光瞬间/光线】 slots — never the fixed style params.
 
