@@ -238,6 +238,31 @@ names**, the win/trophy is YOUR player, the poster. For recorded takes, sync-spo
    on your player and end on the opponent after an in-window camera cut — probe the last second.
 Deliver the MP4. Re-render only changed scenes (`render.py scene <ID>` / `render16.py scene <ID>`).
 
+### 8. 小红书封面图 — deliver WITH the 发布文案, every video (user standard, 2026-07)
+One consistent cover style across the account. Two halves: ChatGPT generates the ART (in the SAME
+project chat that wrote the 解说词 — it has full context), and the TITLE TYPOGRAPHY is burned
+locally so the font is pixel-identical every time (AI-rendered text drifts; local PIL doesn't).
+1. **Base image from ChatGPT (same chat).** Send ONE single-line prompt built from this fixed
+   template — only the 【】 vary per video:
+   > 接着这个视频,生成一张小红书竖版封面图(竖版3:4):写实电影感画风,主体是【主人公+本片
+   > 高光瞬间的特写描述,如:双手捧起温布尔登金盘、眼含泪光微微望天】,【光线/场景,如:金色
+   > 黄昏逆光,中央球场深绿背景大幅虚化】,浅景深,人物占画面中下部三分之二,顶部四分之一留
+   > 干净的虚化负空间方便我后期加标题文字,画面内不要出现任何文字、水印或logo。
+   Fixed style params (never change — they ARE the account style): 写实电影感 · 高光特写占主体 ·
+   人物中下 2/3 · 顶部 1/4 负空间 · 无文字无 logo. The 高光瞬间 comes from the video's emotional
+   peak (夺冠=捧杯, 逆转=怒吼, 告别=背影…). Wait 60-120s for the render.
+2. **Download the image via the bridge** (`scripts/cover_bridge.py`, port 8765). chatgpt.com's CSP
+   blocks page-fetch to 127.0.0.1 AND server-side urllib gets 403 on the signed oaiusercontent URL —
+   the working chain is: in-page `fetch(img.src)` → FileReader→b64 (store on `window`, async JS must
+   write results to `window.__r` — direct await returns `{}`) → hidden `<form method=POST>` submit to
+   the bridge (forms bypass connect-src) → navigate the tab back to the chat.
+3. **Burn the unified typography** — `scripts/make_cover.py <base> 封面图.jpg "主标题" "副标题" [角标]`:
+   3:4 1242×1656 · main title WHITE + black stroke (Hiragino Sans GB **W6**, the caption font) · sub-line
+   GOLD #F2C94C · top-left series pill 角标 #C4563A (default **"网球故事"** — keep it so the account
+   reads as a series). Title = compressed from the approved 小红书标题 (main ≤7 chars, sub ≤10).
+4. Deliver `封面图.jpg` together with `小红书发布文案.md`. If the user dislikes the art, re-prompt
+   step 1 varying ONLY the 【高光瞬间/光线】 slots — never the fixed style params.
+
 ## Why it looks the way it does
 - **Dark moving blur fill**: the footage is scaled-to-cover, blurred, and **darkened ~0.42** behind
   the centred 16:9 strip, with a clay overlay darkening top/bottom for text. Dynamic (not a static
@@ -257,6 +282,8 @@ auto-silence) · `regen_tts.py` (ANTI-LEAK cloned TTS: per-clip whisper verify +
 voice step) · `check_tts.py` (transcript-check report) · `preview_parts.py` (per-part 预览_A..E.mp4,
 voice+ambient — the segment-preview checkpoint) · `build_photos.py` (photos → 9:16 Ken-Burns via PIL
 subpixel affine; never zoompan) ·
+`make_cover.py` (小红书封面统一排版: 3:4 + W6字体 + 金色副标 + 系列角标) · `cover_bridge.py`
+(localhost 图片下载桥, ChatGPT/IG 签名URL专用) ·
 `render16.py` + `assemble16.py` (16:9 / 1920×1080 variant from the same scenes/timing/captions) ·
 `reframe_scenes.py` (full-bleed: crop landscape→9:16 tracking the player, via video-autoreframe) ·
 `build_ig.py` (scale native-vertical Instagram clips AND `ig_ph_*` photo clips → `build/reframed/` keys).
