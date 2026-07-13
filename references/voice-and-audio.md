@@ -9,11 +9,20 @@ A permanent home lives at `/Volumes/Storage/voice-clone/`:
 - `voice_ref.wav` + `voice_ref_text.txt` — the user's reference clip and its exact transcript
 - `hf-cache/` — the downloaded F5-TTS model
 
-Generate per-scene VO straight into the project (reads `build/scenes.py`):
+**Generate with the ANTI-LEAK wrapper — never bare `clone.py scenes` (2026-07, 7 recurrences):**
+the default `voice_ref.wav` deterministically leaks its tail "尤其是他的叔叔托尼" onto clip starts
+(sometimes MID-clip at batch joins, and it can FUSE with and corrupt a real number/word);
+`voice_ref_padded.wav` does NOT fix it. The wrapper uses the known-clean 7.98s
+`voice_ref_tennis_backup.*`, then per clip: synth → whisper(small) → reject leak-probe hits /
+sim<0.80 / ASR≫script → retry ≤4, keep best:
 ```bash
-VOICE_SPEED=0.85 /Volumes/Storage/voice-clone/venv/bin/python \
-   /Volumes/Storage/voice-clone/clone.py scenes "$PROJ/build"
+VOICE_SPEED=0.85 /Volumes/Storage/voice-clone/venv/bin/python "$PROJ/build/regen_tts.py"
+python "$PROJ/build/check_tts.py"   # report; expect FALSE alarms: traditional-script output (sim can
+                                    # hit 0.55), homophones (温王/女丹/科威托瓦/手筋), whisper turning
+                                    # audio "一千" into "1000" — eyeball diffs, don't re-record on ratio alone
 ```
+(If a child python dies with `Fatal Python error: config_init_hash_seed`, strip/override
+`PYTHONHASHSEED` — F5-TTS/this shell pollutes it; regen_tts.py already strips it for whisper.)
 This writes `build/audio/<id>.wav` (loudness-normalized, 48k stereo) + `build/durations.json`.
 First call loads the model (~slow); the rest of the scenes are fast in the same process.
 **`VOICE_SPEED`** (env, default 1.0) controls pace; **0.85 reads more deliberately** — the default
@@ -53,6 +62,22 @@ default to it.
 
 Note: F5-TTS has a buggy interpreter teardown (`config_init_hash_seed`) that fires AFTER the wav is
 written — `clone.py` hard-exits 0 to hide it. The output is fine.
+
+## Ambient 轻原声 — the deliverable ALWAYS carries it (2026-07 standard)
+The final video beds each clip's ORIGINAL audio (ball strikes, crowd, ceremony speech) under the
+narration. Gain **0.30** (0.14 was inaudible). For TTS voice, build the voice master first
+(concat `build/audio/<id>.wav` in scene order → `build/audio_master.wav`), then:
+```bash
+python build/assemble_ambient.py build/audio_master.wav 0.30    # or build/voice/full48k.wav for a recorded take
+```
+- Silent sources (photo `ig_ph_*` clips, muted reels) are auto-padded with silence — `seg_audio()`
+  probes for an audio stream first; keep that fallback when copying the script forward.
+- Windows containing real speech (victory speech, on-court interview) are a feature: pick the window
+  so HER actual words sit under the matching narration beat (whisper the source to time-locate quotes).
+- **Segment previews use the same mix** so the user reviews final sound: `preview_parts.py 0.30`
+  → `预览_A..E.mp4` (per-part video + that part's voice + ambient). Rebuild only affected parts after
+  fixes: `preview_parts.py 0.30 BCD`. Its per-scene ambient cache lives in `build/amb/` — delete a
+  scene's wav there if you retimed its window, or it reuses the stale extract.
 
 ## B) User records the script themselves (single take)
 They'll provide e.g. `build/voice/full.m4a` (Voice Memos temp paths vanish — copy it immediately).

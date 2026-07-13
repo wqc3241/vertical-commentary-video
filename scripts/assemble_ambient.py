@@ -21,12 +21,20 @@ DUR   = {d["id"]: d["dur"] for d in json.load(open(os.path.join(BUILD, "duration
 
 def run(c): subprocess.run(c, check=True)
 
+def has_audio(path):
+    import subprocess
+    r=subprocess.run(["ffprobe","-v","error","-select_streams","a","-show_entries","stream=index","-of","csv=p=0",path],capture_output=True,text=True)
+    return bool(r.stdout.strip())
+
 def seg_audio(stem, tin, dur, out):
-    """Extract source audio [tin, tin+dur] -> 48k stereo wav (silence-padded if source has none)."""
-    run(["ffmpeg","-y","-loglevel","error","-ss",f"{tin:.3f}","-t",f"{dur:.3f}",
-         "-i",os.path.join(SRC,stem+".mp4"),
-         "-af","aresample=48000,highpass=f=90,alimiter=limit=0.9",
-         "-ac","2","-ar","48000","-vn",out])
+    src=os.path.join(SRC,stem+".mp4")
+    if has_audio(src):
+        run(["ffmpeg","-y","-loglevel","error","-ss",f"{tin:.3f}","-t",f"{dur:.3f}",
+             "-i",src,
+             "-af","aresample=48000,highpass=f=90,alimiter=limit=0.9","-ac","2","-ar","48000","-vn",out])
+    else:
+        run(["ffmpeg","-y","-loglevel","error","-f","lavfi","-t",f"{dur:.3f}",
+             "-i","anullsrc=r=48000:cl=stereo",out])
 
 def concat(files, out):
     lst = out + ".txt"; open(lst,"w").write("".join(f"file '{f}'\n" for f in files))

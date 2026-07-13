@@ -74,6 +74,31 @@ This is the single most common mistake; verify it for every footage scene, **inc
   past struggle/resolve, a determined rally or intense close-up of your player fits — not a rival's
   celebration, and (unless deliberately a cold-open) not a duplicate of the championship point.
 
+**When kit colour is ambiguous — the escalation ladder (mandatory, 2026-07).** Colour matching FAILS at
+Wimbledon (all-white) and whenever both players wear the same colour family. Real misses the user caught
+(诺斯科娃 video, Beijing '25 final): "her walking in dark red" was ANISIMOVA — both wore red; the re-pick
+nearly failed again until a **YONEX bag** behind the bench settled it. Escalate in this order:
+1. **Equipment / kit BRAND** (most reliable): racquet paintjob, bag on the bench, logo on tank/visor/
+   shoes. Sponsor contracts are per-player (e.g. Nosková=Yonex+RADO patch; Anisimova=Nike; Muchová=adidas).
+   Zoom to full resolution until a logo is readable.
+2. **Kit construction + headwear**: one-piece dress vs top+skirt; visor vs headband vs cap vs bare.
+3. **Scorebug server-highlight** (the highlighted row is serving — match it to the player at the baseline)
+   and stadium big-screen name/photo graphics inside the frame.
+4. **Physique/handedness**: height difference (e.g. 1.85m vs 1.64m reads clearly in wides), left/right handed.
+Cross-check at least TWO independent signals for every **single-subject** shot (close-up / bench / walking /
+celebration) — those are where both real misses happened; two-player wides self-disambiguate via court sides.
+Operational rules:
+- Verify single-subject windows at **FULL RESOLUTION** — 320px contact-sheet tiles are how wrong IDs slip
+  through. One full-res grab per window minimum.
+- Probe **BOTH ENDS of the window** (start AND `tin+dur-0.2`): broadcast cuts mid-window can swap the
+  subject — a scene that STARTS on your player can END on the opponent walking in (happened at Beijing:
+  bench shot cut to the opponent's serve prep 0.9s before the window ended).
+- **Post-final footage is winner-dense**: after the last point, the player walking / waving / hugging the
+  box is almost always the WINNER — in a final your player LOST, default-assume such shots are the opponent
+  until proven otherwise.
+- Write the per-source anchor table (player = brand + kit + headwear, opponent = …) into the footage-gate
+  plan so every later window pick checks against it.
+
 ### Don't trust a long "shot" as clean — the detector MERGES content
 `shots.json` is scene-change detection; gradual transitions let it **merge a rally + a celebration +
 a graphic board into one 20s "shot."** A big `du` does NOT mean continuous rally. Always **eyeball any
