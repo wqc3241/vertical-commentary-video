@@ -46,6 +46,20 @@ Hard-won quality rules — the user cares about these, don't regress them:
    colour from a *known-champion* shot (trophy lift / match-winning collapse), then match it everywhere.
    **Celebration / fist-pump close-ups are very often the OPPONENT** (a pumped player ≠ your player —
    check the colour). At a trophy ceremony the **runner-up is presented FIRST**. Single most common mistake.
+   **Kit colour ALONE is not enough** — it fails at Wimbledon (all white) and whenever both players wear
+   the same colour family (Beijing '25: BOTH in red; the user caught the wrong subject TWICE, 2026-07).
+   Escalation ladder when colour is ambiguous, in order of reliability:
+   a. **Equipment brand** — racquet/bag/kit logos are unambiguous (Nosková=Yonex vs Nike/adidas; a YONEX
+      bag behind the bench settled a coin-flip). Zoom the frame until you can read a logo.
+   b. **Kit construction + headwear** — one-piece dress vs top+skirt; visor vs headband vs cap; shoes.
+   c. **Scorebug server-highlight / stadium screen** — the highlighted row serves; big-screen graphics name
+      who's shown.
+   d. **Physique** (height/build) and handedness.
+   Protocol: build a per-source **identity anchor table** at footage-gate time (player = brand+kit+headwear
+   per event); verify every **single-subject close-up at FULL resolution** (320px tiles lie — that's how both
+   misses happened); and probe **BOTH ends of every window** — a camera cut mid-window can swap the subject
+   (a window that STARTS on your player can END on the opponent). Post-final walking/waving/hugging footage
+   is winner-dense: in a lost final that's the opponent.
 4. **Show the exact moment the line asks for.** A round result / "he won" → that match's **match point**
    (the deciding rally ending on the winning shot), found by scanning the reel's tail; the climactic
    caption must land on the winning frame. A long `shots.json` "shot" can secretly merge rally+celebration+
@@ -67,6 +81,18 @@ Hard-won quality rules — the user cares about these, don't regress them:
    non-overlapping footage window (audit `[tin, tin+dur]` per source — no two scenes share footage; don't
    over-lean on one reel). The deliverable is **full-screen, edge-to-edge** — no inset border/frame drawn
    by the overlay. → detection techniques in `footage-sourcing.md`.
+9. **Photo scenes never jitter — `build_photos.py` only, NEVER ffmpeg zoompan.** Early-life / archive
+   beats use photos with a slow Ken-Burns push. ffmpeg `zoompan` rounds x/y to integers every frame →
+   visible micro-jitter the user caught (2026-07). `scripts/build_photos.py` renders the zoom with PIL
+   affine SUBPIXEL sampling (float coords, bicubic) piped to x264 — perfectly smooth. Pre-crop each photo
+   9:16 around the subject, name outputs `source/ig_ph_<name>.mp4` (the `ig_` prefix makes `build_ig.py`
+   wire them FULL-BLEED automatically), `lock: True` their scenes. Smoothness check: consecutive-frame
+   `tblend=difference` YAVG should be small and STEADY (no alternating spikes).
+10. **The deliverable always carries 轻原声 (light ambient).** Final assembly = `assemble_ambient.py
+   <voice_master> 0.30` — every clip's original audio (ball strikes / crowd / ceremony speech) bedded
+   under the narration at gain 0.30 (0.14 proved too quiet). Voice-only `render.py assemble` is a draft,
+   not the deliverable. Photo/silent sources get auto-silence (handled in the script). Speech-bearing
+   windows (victory speech, on-court interview) are a feature — let the real voice breathe underneath.
 
 ## Approval gates — NEVER one-shot the whole video (the user requires this, 2026-07)
 Build in stages and STOP for sign-off **twice**. Do NOT run TTS / render / assemble until BOTH gates pass —
@@ -80,6 +106,12 @@ render is the expensive part; the gates exist so the user never pays for a full 
    contact-sheet frames you actually verified — and WAIT for approval before generating voice + rendering.
 Only after the footage gate is approved do you run steps 3→7. (A tiny tweak the user requests mid-build — swap one
 clip, fix one line — doesn't need a fresh gate; a new script or a new footage set does.)
+3. **Segment-preview checkpoint (the user's standard review flow, 2026-07).** After rendering, do NOT deliver a
+   one-shot final: assemble **per-part previews** (`preview_parts.py 0.30` → 预览_A..E.mp4, each = that part's
+   scenes + voice + ambient at final quality), send them, and WAIT for segment feedback ("D3 不要卡" / "预览通过").
+   Only then concat the full deliverable. Long videos: parts = the script's chapters (~1min each); short ones may
+   collapse to 2-3 parts, but the checkpoint stays. Fixes after preview are surgical: re-render the named scene(s),
+   rebuild only the affected part previews (`preview_parts.py 0.30 BCD`), then final-assemble.
 
 ## Workflow (in order)
 
@@ -146,10 +178,13 @@ next clip — order clips so the important line (the punchline / the named playe
 so if a minor spill remains.
 
 ### 3. Voiceover → `references/voice-and-audio.md`
-Default = the user's cloned voice (slow it a touch so it breathes):
+Default = the user's cloned voice via the ANTI-LEAK wrapper (never bare `clone.py scenes` — the default
+reference clip deterministically leaks its tail phrase "尤其是他的叔叔托尼" into clip starts, and the
+padded variant does NOT fix it; 7 recurrences as of 2026-07):
 ```bash
 VOICE_SPEED=0.85 /Volumes/Storage/voice-clone/venv/bin/python \
-   /Volumes/Storage/voice-clone/clone.py scenes "$PROJ/build"   # -> audio/<id>.wav + durations.json
+   "$PROJ/build/regen_tts.py"     # tennis_backup ref + per-clip whisper verify + retry<=4 -> audio/<id>.wav + durations.json
+python "$PROJ/build/check_tts.py" # standalone report; homophones/traditional-script/number-normalization are FALSE alarms — eyeball diffs
 ```
 Or the user records one take → `align.py` (see reference).
 
@@ -172,13 +207,17 @@ the opponent / a replay / a logo / a 1-frame crowd-reaction flash. Fix via `END_
 the margin baked in: `tin = boundary - 0.17 - dur`, locked via `_MANUAL`. `shots.json` can merge a
 rally+celebration+graphic into one long "shot" — eyeball the window, never trust its duration alone.
 
-### 6. Render + assemble  (only after BOTH the script gate AND footage gate are approved)
+### 6. Render → SEGMENT PREVIEWS → final assemble  (only after BOTH gates are approved)
 ```bash
 python "$PROJ/build/render.py" all        # overlay + cards + per-scene 9:16 (montage-aware)
-python "$PROJ/build/render.py" assemble   # cloned/TTS audio -> $PROJ/<OUTPUT_NAME>
-# OR, recorded take: python build/render.py assemble-voice build/voice/full48k.wav
-# OR, recorded take + each clip's ORIGINAL audio mixed in quietly under the voice (the user likes this):
-python build/assemble_ambient.py build/voice/full48k.wav 0.30   # gain 0.14 was too quiet → 0.30 audible
+# 6a. SELF-QC the rendered scenes (see step 7 checks) BEFORE showing the user anything.
+# 6b. SEGMENT PREVIEWS — the user's standard flow: per-part files at final quality, then WAIT for feedback:
+python "$PROJ/build/preview_parts.py" 0.30           # -> 预览_A..E.mp4 (part scenes + voice + ambient@0.30)
+# ... user reviews; fix named scenes; rebuild affected parts: preview_parts.py 0.30 BCD
+# 6c. FINAL — always WITH ambient (rule 10). TTS voice: concat build/audio/<id>.wav in scene order first:
+python build/assemble_ambient.py build/audio_master.wav 0.30    # TTS voice master + ambient -> $PROJ/<OUTPUT_NAME>
+# recorded take instead: python build/assemble_ambient.py build/voice/full48k.wav 0.30
+# (voice-only render.py assemble / assemble-voice = drafts only, not the deliverable)
 ```
 **16:9 landscape variant** (the user often wants this too): `render16.py` reuses the SAME `scenes.py`,
 `durations.json` and `captions.json` and renders 1920×1080 (footage fills the frame, cards re-laid-out);
@@ -187,12 +226,16 @@ python build/assemble_ambient.py build/voice/full48k.wav 0.30   # gain 0.14 was 
 ### 7. Verify + deliver — LOOK at every scene, not just a 14-frame sweep
 `contact_sheet.py video <out.mp4> 14` → Read it. Confirm chips, captions in sync, card **scores +
 names**, the win/trophy is YOUR player, the poster. For recorded takes, sync-spot-check (reference).
-**Then run the three checks the user keeps catching (see `footage-sourcing.md`):**
+**Then run the FOUR checks the user keeps catching (see `footage-sourcing.md`):**
 1. **Logo/card scan** — tile a frame from every scene's start + mid + each montage clip start, Read it,
    and replace any window that lands on a Netflix/sponsor/title/date CARD (luma checks miss these).
 2. **Flash-free** — luma-profile each source (`signalstats`) and confirm no window has a near-black or
    spike frame (`pick_clean.py`); fix the reported ones AND the ones they didn't spot.
 3. **Distinct + factual** — no two scenes share a window; every clip is literally true to its line.
+4. **Identity re-check on the RENDERED output** — for every single-subject window (close-up, bench,
+   walk, celebration): full-res frames at BOTH ends of the window; confirm subject via the rule-3
+   escalation ladder (brand logo > kit construction > scorebug), not colour alone. A window can start
+   on your player and end on the opponent after an in-window camera cut — probe the last second.
 Deliver the MP4. Re-render only changed scenes (`render.py scene <ID>` / `render16.py scene <ID>`).
 
 ## Why it looks the way it does
@@ -209,11 +252,15 @@ Deliver the MP4. Re-render only changed scenes (`render.py scene <ID>` / `render
 `caption_times.py` (word-exact captions) · `render.py` (`all`/`scene <ID>`/`assemble`/`assemble-voice`/
 `assets`) · `tts_say.py` (robotic draft) · `contact_sheet.py` · `shotsheet.py` ·
 `pick_clean.py` (flash-free window finder from `/tmp/lum_*.txt` signalstats profiles) ·
-`assemble_ambient.py` (voice + each clip's original audio mixed low) ·
+`assemble_ambient.py` (FINAL assembler: voice + each clip's original audio at 0.30; silent sources →
+auto-silence) · `regen_tts.py` (ANTI-LEAK cloned TTS: per-clip whisper verify + retries — the default
+voice step) · `check_tts.py` (transcript-check report) · `preview_parts.py` (per-part 预览_A..E.mp4,
+voice+ambient — the segment-preview checkpoint) · `build_photos.py` (photos → 9:16 Ken-Burns via PIL
+subpixel affine; never zoompan) ·
 `render16.py` + `assemble16.py` (16:9 / 1920×1080 variant from the same scenes/timing/captions) ·
 `reframe_scenes.py` (full-bleed: crop landscape→9:16 tracking the player, via video-autoreframe) ·
-`build_ig.py` (scale native-vertical Instagram clips → `build/reframed/` keys). render.py prefers a
-`build/reframed/<stem>_<tin>_<dur>.mp4` if present (full-bleed) else blur-fill — see
+`build_ig.py` (scale native-vertical Instagram clips AND `ig_ph_*` photo clips → `build/reframed/` keys).
+render.py prefers a `build/reframed/<stem>_<tin>_<dur>.mp4` if present (full-bleed) else blur-fill — see
 `references/vertical-footage-and-instagram.md`.
 
 Voice cloning lives at `/Volumes/Storage/voice-clone/` (venv + `clone.py` + the user's reference clip;
