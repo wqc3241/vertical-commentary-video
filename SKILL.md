@@ -263,6 +263,13 @@ context). 4o renders Chinese accurately when the prompt spells every string verb
    working chain: in-page `fetch(img.src)` → FileReader→b64 (async JS must write results to
    `window.__r`; direct await returns `{}`) → hidden `<form method=POST>` submit (forms bypass
    connect-src) → navigate the tab back.
+3b. **Pose/composition fixes = EDIT THE PREVIOUS IMAGE, don't re-prompt from scratch** (hard-won
+   2026-07-12: "捧起金盘" rendered as 端盘子; the fix took ONE message): send 「基于你上一张生成的封面图
+   修改:人物动作改为【双手将奖杯高举过头顶庆祝】,其余(四处文字/构图/风格)全部不变」— 4o iterates on
+   its own image, keeping likeness+typography. Write pose language PRECISELY (高举过头顶≠捧起≠端着).
+   Do NOT attempt to upload reference photos into chatgpt.com via the extension — every channel is
+   blocked (file_upload path whitelist, CSP blocks fetch/img to localhost, synthetic cmd+V carries no
+   clipboard); if a real reference is essential, ask the USER to attach it in the ChatGPT app.
 4. **逐字校验 (MANDATORY — 4o's #1 failure is mangled hanzi):** crop the four text zones at FULL
    resolution, Read them, and check EVERY character stroke-level against the intended strings. Any
    wrong/extra/missing char → tell GPT which char is wrong and regenerate (same chat). Then upscale
