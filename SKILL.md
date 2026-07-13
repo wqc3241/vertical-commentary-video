@@ -239,34 +239,39 @@ names**, the win/trophy is YOUR player, the poster. For recorded takes, sync-spo
 Deliver the MP4. Re-render only changed scenes (`render.py scene <ID>` / `render16.py scene <ID>`).
 
 ### 8. 小红书封面图 — deliver WITH the 发布文案, every video (user standard, 2026-07)
-One consistent cover style across the account. Two halves: ChatGPT generates the ART (in the SAME
-project chat that wrote the 解说词 — it has full context), and the TITLE TYPOGRAPHY is burned
-locally so the font is pixel-identical every time (AI-rendered text drifts; local PIL doesn't).
-1. **Base image from ChatGPT (same chat).** Send ONE single-line prompt built from this fixed
-   template — only the 【】 vary per video:
-   > 接着这个视频,生成一张小红书竖版封面图(竖版3:4):写实电影感画风,主体是【主人公+本片
-   > 高光瞬间的特写描述,如:双手捧起温布尔登金盘、眼含泪光微微望天】,【光线/场景,如:金色
-   > 黄昏逆光,中央球场深绿背景大幅虚化】,浅景深,人物占画面中下部三分之二,顶部四分之一留
-   > 干净的虚化负空间方便我后期加标题文字,画面内不要出现任何文字、水印或logo。
-   Fixed style params (never change — they ARE the account style): 写实电影感 · 高光特写占主体 ·
-   人物中下 2/3 · 顶部 1/4 负空间 · 无文字无 logo. The 高光瞬间 comes from the video's emotional
-   peak (夺冠=捧杯, 逆转=怒吼, 告别=背影…). Wait 60-120s for the render.
-2. **Download the image via the bridge** (`scripts/cover_bridge.py`, port 8765). chatgpt.com's CSP
-   blocks page-fetch to 127.0.0.1 AND server-side urllib gets 403 on the signed oaiusercontent URL —
-   the working chain is: in-page `fetch(img.src)` → FileReader→b64 (store on `window`, async JS must
-   write results to `window.__r` — direct await returns `{}`) → hidden `<form method=POST>` submit to
-   the bridge (forms bypass connect-src) → navigate the tab back to the chat.
-3. **Burn the unified typography** — `scripts/make_cover.py <base> 封面图.jpg "主标题" ["副标题"]
-   ["人名"] [角标]` (template v2, user-approved 2026-07-12; params are FROZEN — they are the account style):
-   3:4 1242×1656 · bg = base blur26+darken, sharp subject layer at **86% width, bottom-anchored** (subject
-   never touches the title; more top space) · main title **Songti SC Black**(宋体特黑, 有个性且直观 — the
-   user rejected plain 黑体) white + black stroke · sub-line **Songti SC Bold** GOLD #F2C94C · title block
-   starts y=175 (clear of the pill row — they overlapped in v1) · bottom name line "诺 斯 科 娃" tracked,
-   white + gold dots over a bottom gradient · top-left series pill 角标 #C4563A Hiragino W6 (default
-   **"网球故事"**). Title = compressed from the approved 小红书标题 (main ≤6 chars, sub ≤10) + the
-   protagonist's name for the bottom line.
-4. Deliver `封面图.jpg` together with `小红书发布文案.md`. If the user dislikes the art, re-prompt
-   step 1 varying ONLY the 【高光瞬间/光线】 slots — never the fixed style params.
+One consistent cover style across the account. **DEFAULT MODE (user decision 2026-07-12): GPT paints
+the COMPLETE cover, text included** — in the SAME project chat that wrote the 解说词 (it has full
+context). 4o renders Chinese accurately when the prompt spells every string verbatim and demands it.
+1. **Send ONE single-line prompt** from this fixed template — only the 【】 slots vary per video
+   (the four text zones + layout language are FROZEN; they ARE the account style):
+   > 再生成一版完整封面,这次把文字直接画进图里,所有汉字必须逐字准确、不能错字漏字多字。竖版3比4。
+   > 文字共四处:第一处,画面上部居中大标题「【主标,≤6字,压缩自小红书标题】」,厚重宋体风格衬线大字,
+   > 白色带深色描边;第二处,大标题正下方一行金色副标题「【副标,≤10字】」,略小的金黄色衬线字;
+   > 第三处,左上角红棕色圆角胶囊标签,内有白色小字「网球故事」,标签不要压到大标题;第四处,画面底部
+   > 居中白色小字「【主人公人名】」,两侧各一个金色小圆点。人物主体:【主人公外形+本片高光瞬间特写,
+   > 如:白色网球服白遮阳帽,双手捧温布尔登金盘、眼含泪光微微望天】,人物占画面中下部三分之二,头顶
+   > 不要碰到副标题文字。写实电影感,【光线/场景,如:金色黄昏逆光,中央球场深绿背景大幅虚化】,浅景深。
+   > 除上述四处文字外,画面内不要出现其他任何文字、水印或logo。
+   高光瞬间 = the video's emotional peak (夺冠=捧杯, 逆转=怒吼, 告别=背影…). Wait 60-120s.
+2. **Composer gotchas (each one happened):** the `computer type` action can silently DROP characters
+   (「21」 and parens vanished) and cmd+A-delete can fail, so text ACCUMULATES. Reliable path: focus the
+   composer, then via `javascript_tool` run `execCommand('selectAll')+('delete')+('insertText', P)`,
+   VERIFY the four text substrings are present in `#prompt-textarea` innerText, then JS-click
+   `button[data-testid="send-button"]`. Newlines auto-send — the prompt must be ONE line.
+3. **Download via the bridge** (`scripts/cover_bridge.py`, port 8765). chatgpt.com's CSP blocks
+   page-fetch to 127.0.0.1 AND server-side urllib gets 403 on the signed oaiusercontent URL — the
+   working chain: in-page `fetch(img.src)` → FileReader→b64 (async JS must write results to
+   `window.__r`; direct await returns `{}`) → hidden `<form method=POST>` submit (forms bypass
+   connect-src) → navigate the tab back.
+4. **逐字校验 (MANDATORY — 4o's #1 failure is mangled hanzi):** crop the four text zones at FULL
+   resolution, Read them, and check EVERY character stroke-level against the intended strings. Any
+   wrong/extra/missing char → tell GPT which char is wrong and regenerate (same chat). Then upscale
+   to 1242×1656 lanczos → `封面图.jpg`, delivered together with `小红书发布文案.md`.
+5. **Fallback (art-only + local typography):** if 4o repeatedly fails the text check, ask it for the
+   SAME cover 但画面内不要任何文字 + 顶部1/4负空间, then burn the text with
+   `scripts/make_cover.py <base> 封面图.jpg "主标" ["副标"] ["人名"] [角标]` — pixel-identical fonts
+   (Songti SC Black 主标 / Songti SC Bold 金色副标 / bottom tracked name + gold dots / #C4563A pill,
+   3:4 1242×1656, subject layer 86% bottom-anchored). Art re-prompts vary ONLY the 【高光/光线】 slots.
 
 ## Why it looks the way it does
 - **Dark moving blur fill**: the footage is scaled-to-cover, blurred, and **darkened ~0.42** behind
