@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
-"""五段预览: 每段(A/B/C/D/E)拼场景视频+该段TTS配音+该段原声(gain 0.30)。
-输出 <project>/预览_A.mp4 ... 预览_E.mp4。Usage: python build/preview_parts.py [gain] [parts]"""
+"""分段预览: 每段(A/B/C/…)拼场景视频+该段TTS配音+该段原声。
+输出 <project>/预览_A.mp4 … Usage: python build/preview_parts.py [gain] [parts]
+分段来源: scenes.py 里可选 PART_MAP={"A":["S1","S2"],…};没有则按场景 id 前缀匹配(A1,A2→预览_A)。
+scenes.py 里可选 MUTE_AMBIENT={"stem",…}: 这些源的原声强制静音(IG制作类reel配乐,规则:只留真实现场声)。"""
 import json, os, sys, subprocess
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from scenes import SCENES
@@ -9,17 +11,23 @@ BUILD=os.path.dirname(os.path.abspath(__file__)); ROOT=os.path.dirname(BUILD)
 SRC=os.path.join(ROOT,"source"); SCN=os.path.join(BUILD,"scene"); AUD=os.path.join(BUILD,"audio")
 AMB=os.path.join(BUILD,"amb"); os.makedirs(AMB,exist_ok=True)
 GAIN=float(sys.argv[1]) if len(sys.argv)>1 else 0.30
-ONLY=sys.argv[2] if len(sys.argv)>2 else "ABCDE"
 DUR={d["id"]:d["dur"] for d in json.load(open(os.path.join(BUILD,"durations.json")))}
 def run(c): subprocess.run(c,check=True)
 def has_audio(path):
-    import subprocess
     r=subprocess.run(["ffprobe","-v","error","-select_streams","a","-show_entries","stream=index","-of","csv=p=0",path],capture_output=True,text=True)
     return bool(r.stdout.strip())
 
+MUTE=set(); PART_MAP=None
+try:
+    import scenes as _S2
+    MUTE=getattr(_S2,"MUTE_AMBIENT",set()); PART_MAP=getattr(_S2,"PART_MAP",None)
+except Exception: pass
+PARTS="".join(PART_MAP.keys()) if PART_MAP else "ABCDE"
+ONLY=sys.argv[2] if len(sys.argv)>2 else PARTS
+
 def seg_audio(stem,tin,dur,out):
     src=os.path.join(SRC,stem+".mp4")
-    if has_audio(src):
+    if stem not in MUTE and has_audio(src):
         run(["ffmpeg","-y","-loglevel","error","-ss",f"{tin:.3f}","-t",f"{dur:.3f}",
              "-i",src,
              "-af","aresample=48000,highpass=f=90,alimiter=limit=0.9","-ac","2","-ar","48000","-vn",out])
@@ -30,9 +38,10 @@ def seg_audio(stem,tin,dur,out):
 def concat(files,out,copy=True):
     lst=out+".txt"; open(lst,"w").write("".join(f"file '{f}'\n" for f in files))
     run(["ffmpeg","-y","-loglevel","error","-f","concat","-safe","0","-i",lst]+(["-c","copy"] if copy else [])+[out])
-for part in "ABCDE":
+for part in PARTS:
     if part not in ONLY: continue
-    scs=[s for s in SCENES if s["id"].startswith(part)]
+    scs=[s for s in SCENES if (s["id"] in PART_MAP[part])] if PART_MAP else [s for s in SCENES if s["id"].startswith(part)]
+    if not scs: continue
     # ambient per scene
     ambs=[]
     for sc in scs:

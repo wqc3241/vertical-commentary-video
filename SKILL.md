@@ -59,7 +59,11 @@ Hard-won quality rules — the user cares about these, don't regress them:
    per event); verify every **single-subject close-up at FULL resolution** (320px tiles lie — that's how both
    misses happened); and probe **BOTH ends of every window** — a camera cut mid-window can swap the subject
    (a window that STARTS on your player can END on the opponent). Post-final walking/waving/hugging footage
-   is winner-dense: in a lost final that's the opponent.
+   is winner-dense: in a lost final that's the opponent. **YOLO-tracked crops need the same check on the
+   TRACKED OUTPUT, not just the source** (2026-07): the tracker locked onto a standing spectator behind her
+   while she sat crying, and onto the opponent at fixed-camera events where the near end swaps each game —
+   extract frames from `build/reframed/*.mp4` and confirm the crop follows YOUR player for the whole window;
+   if the subject is occluded/ambiguous, add the window to `FIT_WINDOWS` (full frame centered) instead.
 4. **Show the exact moment the line asks for.** A round result / "he won" → that match's **match point**
    (the deciding rally ending on the winning shot), found by scanning the reel's tail; the climactic
    caption must land on the winning frame. A long `shots.json` "shot" can secretly merge rally+celebration+
@@ -77,22 +81,35 @@ Hard-won quality rules — the user cares about these, don't regress them:
    hard-court match from another year; a "foot injury / 穆勒-魏斯综合症" line shows medical/X-ray footage,
    not a family shot; "his rivals praised him" shows the rivals, not an unrelated interviewee; "戴维斯杯"
    uses Davis Cup footage. When the user names a source/clip, use THAT one. Wrong-but-pretty ≠ acceptable.
-8. **No repeated or overlapping clips, and no decorative frame.** Every scene gets a DISTINCT,
-   non-overlapping footage window (audit `[tin, tin+dur]` per source — no two scenes share footage; don't
-   over-lean on one reel). The deliverable is **full-screen, edge-to-edge** — no inset border/frame drawn
-   by the overlay. → detection techniques in `footage-sourcing.md`.
-9. **Photo scenes never jitter — `build_photos.py` only, NEVER ffmpeg zoompan.** Early-life / archive
-   beats use photos with a slow Ken-Burns push. ffmpeg `zoompan` rounds x/y to integers every frame →
-   visible micro-jitter the user caught (2026-07). `scripts/build_photos.py` renders the zoom with PIL
-   affine SUBPIXEL sampling (float coords, bicubic) piped to x264 — perfectly smooth. Pre-crop each photo
-   9:16 around the subject, name outputs `source/ig_ph_<name>.mp4` (the `ig_` prefix makes `build_ig.py`
-   wire them FULL-BLEED automatically), `lock: True` their scenes. Smoothness check: consecutive-frame
-   `tblend=difference` YAVG should be small and STEADY (no alternating spikes).
-10. **The deliverable always carries 轻原声 (light ambient).** Final assembly = `assemble_ambient.py
-   <voice_master> 0.30` — every clip's original audio (ball strikes / crowd / ceremony speech) bedded
-   under the narration at gain 0.30 (0.14 proved too quiet). Voice-only `render.py assemble` is a draft,
-   not the deliverable. Photo/silent sources get auto-silence (handled in the script). Speech-bearing
-   windows (victory speech, on-court interview) are a feature — let the real voice breathe underneath.
+8. **尽量不用重复素材 — but SLICE long sources into distinct moments (user rule 2026-07-16).** Every
+   scene gets a DISTINCT, non-overlapping footage window (audit `[tin, tin+dur]` per source — no two
+   scenes may share a window; run a programmatic overlap audit before rendering). Re-using the SAME
+   moment twice is the violation; one long source containing DIFFERENT scenes (rally / bench / ceremony /
+   interview) SHOULD be cut into several windows used in different places — that's how you stretch a thin
+   footage pool without repeats. Spread usage across sources; don't over-lean on one reel. The deliverable
+   is **full-screen, edge-to-edge** — no inset border/frame drawn by the overlay. → `footage-sourcing.md`.
+9. **Static photos: PURE STATIC, ≤3s each, NO effects (user standing rule 2026-07-16 — supersedes the
+   old Ken-Burns default).** "一张图出现在那儿就可以" — no zoom, no push, no pan; build stills with
+   `ffmpeg -loop 1 -t <seg> -i photo.png` at native size. Photo rules, each one user-enforced:
+   a. **≤3 seconds per photo/graphic** — in a montage a photo takes exactly 1 slice; longer beats use a
+      VIDEO or a multi-photo montage, never one lingering still.
+   b. **特写/already-tight photos are used AS-IS — never re-crop a close-up.** Second-pass cropping of an
+      already-framed photo cuts heads/limbs (捧橘子照 beheaded twice).
+   c. **If a 9:16 crop can't contain the whole person → show the FULL ORIGINAL image centered** (blur
+      letterbox via `FIT_WINDOWS` / a `ph_*_wide` still). Do NOT iterate cx guesses hunting the subject —
+      the user's exact words after two failures: "你要是不知道怎么截到整个人,你就放原图".
+   d. **Every still must carry readable information — a subject's face/body or concrete numbers.** A
+      zoomed fragment with no person and no legible data (the unintelligible zoomed scoreboard: "什么玩意儿")
+      is worse than nothing; show the full graphic, or replace it, or extend the PREVIOUS video clip to
+      fill the slot (user-preferred fix).
+   e. `build_photos.py` Ken-Burns exists but is OFF by default now — only when the user explicitly asks
+      for motion; ffmpeg `zoompan` stays banned always (integer-rounding jitter).
+10. **The deliverable always carries 轻原声 (light ambient) — final gain 0.15 (user 2026-07-16: 0.30
+   压配音,"再调小一半").** Segment previews may run 0.30 for review, but the FINAL assembly =
+   `assemble_ambient.py <voice_master> 0.15` unless the user sets another value — the cloned voice must
+   stay clearly on top. Voice-only `render.py assemble` is a draft, not the deliverable. Photo/silent
+   sources get auto-silence. Speech-bearing windows (victory speech, on-court interview) are a feature —
+   let the real voice breathe underneath.
 11. **Every deliverable ends with the user's branded ending + ships as 1080p 60fps (standing rule
    2026-07-13).** After assemble_ambient/assemble16, ALWAYS run `finalize_ending.py <deliverable>`:
    appends `assets/ending.mov` (点赞收藏关注 card, native 1080×1920) — kept vertical for 9:16, center-
@@ -100,6 +117,15 @@ Hard-won quality rules — the user cares about these, don't regress them:
    (skips if the `finalized-with-ending` tag is present). Single-pass filter_complex concat dies on this
    Mac's ffmpeg — the script's 3-step method (transcode both parts to identical specs → concat -c copy)
    is deliberate, don't refactor. If the user hands you a NEW ending clip, replace `assets/ending.mov`.
+12. **Produced IG reels' music is NOT venue sound — mute it.** Ambient under the narration must be REAL
+   现场声 (ball strikes / crowd / broadcast); an edited reel's music bed or added SFX is not ("背景音
+   不是视频背景音"). List those stems in `scenes.py` `MUTE_AMBIENT = {"ig_milan_champ", …}` — honored by
+   BOTH `preview_parts.py` and `assemble_ambient.py`. Landscape 横屏 with an uncertain/two-player subject:
+   fit the full frame centered (blur letterbox), do NOT zoom in guessing.
+13. **Cards (战绩卡 etc.) are ≤3s INSERTS woven between match footage, never a parked full scene** (a
+   16s static card loses viewers). Use per-scene `CARDS`+`treat="card:<key>"` slices inside a montage.
+   Card text must not collide with the scene chip — give inserted cards `title=""` (the chip IS the
+   title); if a chip covers a face, drop the chip for that scene.
 
 ## Approval gates — NEVER one-shot the whole video (the user requires this, 2026-07)
 Build in stages and STOP for sign-off **twice**. Do NOT run TTS / render / assemble until BOTH gates pass —
@@ -170,9 +196,14 @@ dark-blur letterbox is the FALLBACK, not the look.** Per scene, in order of pref
 2. **Full-bleed tracked crop** of a landscape reel (`reframe_scenes.py`, video-autoreframe skill) —
    for beats that only exist in broadcast footage (e.g. THE match point of a specific round):
    download the official YouTube reel per `references/footage-sourcing.md`, then crop-track it.
+   **Montage slices from one continuous take → `reframe_span.py`**: mark them `("stem",t),("stem","+"),…`
+   and it runs ONE YOLO pass over the whole span then splits into per-slice keys — per-slice tracking
+   re-centers at every cut and visibly jumps. Verify the tracked output per quality-rule 3.
 3. **Classic blur-letterbox landscape** ONLY where neither works (ambiguous 2-player wide rally the
-   tracker can't follow, or the user prefers the broadcast frame) — and say which scenes fell back
-   and why when presenting.
+   tracker can't follow, subject occluded by crowd, or the user prefers the broadcast frame) — declare
+   the window in `FIT_WINDOWS` so reframe skips it, and say which scenes fell back and why when
+   presenting. This is also the mandated treatment for uncertain-subject 横屏 (rule 12) and
+   can't-crop-the-whole-person photos (rule 9c): full frame/image centered, never a zoom guess.
 Mix per scene; `lock: True` every full-bleed/IG scene. Verify each clip's resolution and **eyeball
 frames** (`contact_sheet.py`) — content, surface, and which player is which. Match every scene's
 clip to its `vo` (round result → that match's **match point**, scanned from the reel's tail) and
@@ -193,6 +224,21 @@ VOICE_SPEED=0.85 /Volumes/Storage/voice-clone/venv/bin/python \
    "$PROJ/build/regen_tts.py"     # tennis_backup ref + per-clip whisper verify + retry<=4 -> audio/<id>.wav + durations.json
 python "$PROJ/build/check_tts.py" # standalone report; homophones/traditional-script/number-normalization are FALSE alarms — eyeball diffs
 ```
+**断句/语气 audit — MANDATORY before captions (this made the 2026-07 build "完成度非常高"; the user
+had previously flagged 断句奇怪 like "深圳|女孩"):** F5-TTS sometimes inserts a prosody break MID-phrase.
+Whisper word-gap timestamps CANNOT detect these — audit acoustically:
+```bash
+/Volumes/Storage/voice-clone/venv/bin/python "$PROJ/build/fix_pauses.py"        # audit + auto-regen flagged scenes
+/Volumes/Storage/voice-clone/venv/bin/python "$PROJ/build/regen_fix.py" S3,S7   # targeted re-takes if any remain
+```
+Method (in `fix_pauses.py`/`fix_pauses_lib.py`): ffmpeg `silencedetect` (-32dB / 0.28s) finds real pauses →
+whisper word positions + difflib `SequenceMatcher` map each pause onto the caption-line 断句 boundaries
+(survives digit/homophone drift; exact ±0 boundary match — a ±1 tolerance masked a real "李慧|说" break
+once). A pause AT a "/" boundary is correct prosody; a pause INSIDE a line is a break → regenerate that
+scene and re-pick takes until ZERO intra-line pauses. Write the `vo` with "/" at every intended breath
+point (short clauses ≤20 chars) — the TTS phrases far better and the audit has true boundaries to check
+against. If scenes are regenerated AFTER previews, rebuild `audio_master.wav` before final assembly
+(stale-master bug, 2026-07).
 Or the user records one take → `align.py` (see reference).
 
 ### 4. Word-exact captions  → `references/voice-and-audio.md`
@@ -221,9 +267,10 @@ python "$PROJ/build/render.py" all        # overlay + cards + per-scene 9:16 (mo
 # 6b. SEGMENT PREVIEWS — the user's standard flow: per-part files at final quality, then WAIT for feedback:
 python "$PROJ/build/preview_parts.py" 0.30           # -> 预览_A..E.mp4 (part scenes + voice + ambient@0.30)
 # ... user reviews; fix named scenes; rebuild affected parts: preview_parts.py 0.30 BCD
-# 6c. FINAL — always WITH ambient (rule 10). TTS voice: concat build/audio/<id>.wav in scene order first:
-python build/assemble_ambient.py build/audio_master.wav 0.30    # TTS voice master + ambient -> $PROJ/<OUTPUT_NAME>
-# recorded take instead: python build/assemble_ambient.py build/voice/full48k.wav 0.30
+# 6c. FINAL — always WITH ambient (rule 10, final gain 0.15). TTS voice: concat build/audio/<id>.wav
+#     in scene order first (REBUILD it if any scene was regenerated after previews — stale-master bug):
+python build/assemble_ambient.py build/audio_master.wav 0.15    # TTS voice master + ambient -> $PROJ/<OUTPUT_NAME>
+# recorded take instead: python build/assemble_ambient.py build/voice/full48k.wav 0.15
 # (voice-only render.py assemble / assemble-voice = drafts only, not the deliverable)
 # 6d. ALWAYS finish with the branded ending + 1080p60 re-encode (rule 11):
 python build/finalize_ending.py "$PROJ/<OUTPUT_NAME>"
@@ -248,9 +295,24 @@ names**, the win/trophy is YOUR player, the poster. For recorded takes, sync-spo
    on your player and end on the opponent after an in-window camera cut — probe the last second.
 Deliver the MP4. Re-render only changed scenes (`render.py scene <ID>` / `render16.py scene <ID>`).
 
+**内容章节 — the 4th standard deliverable (user standard 2026-07-16), alongside 成片/封面图/发布文案:**
+a chapter list with timestamps + themes, appended to `小红书发布文案.md`.
+- **Chapter count ≤ the video's length in minutes** (6-min video → ≤6 chapters, 5-min → ≤5; round the
+  runtime UP). With more scenes than that, MERGE adjacent scenes into one chapter per story beat
+  (起步→夺冠→爆发…), don't emit one chapter per scene.
+- Timestamps = cumulative scene durations from `build/durations.json` (scene renders equal their audio
+  length; the branded ending only adds tail time). Format `mm:ss`, floor to the second.
+- **Frame-verify 3-4 boundaries before delivering**: extract a frame just after each claimed timestamp
+  and confirm the scene chip/content matches the chapter title — never ship unchecked arithmetic.
+- Titles follow the copy-style rules (Arabic digits, natural phrasing, no hype).
+
 ### 8. 小红书封面图 — deliver WITH the 发布文案, every video (user standard, 2026-07)
-One consistent cover style across the account, made in the SAME project chat that wrote the 解说词.
-The account typography is FROZEN — four text zones, only the 【】 slots vary per video:
+**The cover MUST be generated in the user's web ChatGPT — NEVER self-generate one (user hard rule
+2026-07-16: "一定要用 web 版 GPT 去生成,不要你自己生成").** Local `make_cover.py` typography is NOT an
+acceptable default or silent fallback — it may be used only if GPT repeatedly fails AND the user
+explicitly approves switching. One consistent cover style across the account, made in the SAME project
+chat that wrote the 解说词. The account typography is FROZEN — four text zones, only the 【】 slots vary
+per video:
 > 大标题「【主标,≤6字,压缩自小红书标题】」厚重宋体衬线白字深色描边 · 其下金色副标题「【副标,≤10字】」·
 > 左上角红棕圆角胶囊白字「网球故事」(不压标题) · 底部居中白字「【主人公人名】」两侧金色小圆点 ·
 > 竖版3比4 · 所有汉字逐字准确 · 除四处文字外无任何其他文字/水印/logo
@@ -283,9 +345,11 @@ The account typography is FROZEN — four text zones, only the 【】 slots vary
 PRECISE (高举过头顶≠捧起≠端着 — "捧起" rendered as 端盘子 once). Pose/composition fixes = EDIT the
 previous image (「基于你上一张生成的封面图修改:【改动】,其余全部不变」), never re-prompt from scratch.
 
-**MODE C — last resort (4o repeatedly mangles text):** ask for the art 不带任何文字 + 顶部1/4负空间,
-then burn typography locally with `scripts/make_cover.py <base> 封面图.jpg "主标" ["副标"] ["人名"]
-[角标]` (Songti SC Black/Bold, gold sub, tracked name + gold dots, #C4563A pill, 1242×1656).
+**MODE C — ONLY with the user's explicit approval, never on your own initiative (demoted 2026-07-16):**
+if 4o repeatedly mangles text after regeneration attempts, ASK the user; only if they approve, request
+the art 不带任何文字 + 顶部1/4负空间, then burn typography locally with `scripts/make_cover.py <base>
+封面图.jpg "主标" ["副标"] ["人名"] [角标]` (Songti SC Black/Bold, gold sub, tracked name + gold dots,
+#C4563A pill, 1242×1656).
 
 **Composer gotchas (each one happened):** `computer type` can silently DROP characters (「21」+parens
 vanished) and cmd+A-delete can fail so text ACCUMULATES → always `javascript_tool` with
@@ -302,21 +366,28 @@ innerText, then JS-click `button[data-testid="send-button"]`. Newlines auto-send
   then overlay chip/caps across the full scene.
 
 ## Engine scripts (`scripts/`, copied into `build/`)
-`scenes_template.py` (config) · `detect_shots.py` · `pick_ends.py` · `align.py` (align a recording) ·
+`scenes_template.py` (config; incl. optional `CARDS`/`MUTE_AMBIENT`/`FIT_WINDOWS`/`IG_EXCLUDE`/`PART_MAP`
+knobs + "+" contiguous-slice markers) · `detect_shots.py` · `pick_ends.py` · `align.py` (align a recording) ·
 `caption_times.py` (word-exact captions) · `render.py` (`all`/`scene <ID>`/`assemble`/`assemble-voice`/
-`assets`) · `tts_say.py` (robotic draft) · `contact_sheet.py` · `shotsheet.py` ·
-`pick_clean.py` (flash-free window finder from `/tmp/lum_*.txt` signalstats profiles) ·
-`assemble_ambient.py` (FINAL assembler: voice + each clip's original audio at 0.30; silent sources →
-auto-silence) · `finalize_ending.py` (LAST step, rule 11: append `assets/ending.mov` + re-encode 1080p60;
-auto 9:16/16:9) · `regen_tts.py` (ANTI-LEAK cloned TTS: per-clip whisper verify + retries — the default
-voice step) · `check_tts.py` (transcript-check report) · `preview_parts.py` (per-part 预览_A..E.mp4,
-voice+ambient — the segment-preview checkpoint) · `build_photos.py` (photos → 9:16 Ken-Burns via PIL
-subpixel affine; never zoompan) ·
-`make_cover.py` (小红书封面统一排版: 3:4 + W6字体 + 金色副标 + 系列角标) · `cover_bridge.py`
+`assets`; per-scene cards via `treat="card:<key>"`) · `tts_say.py` (robotic draft) · `contact_sheet.py` ·
+`shotsheet.py` · `pick_clean.py` (flash-free window finder from `/tmp/lum_*.txt` signalstats profiles) ·
+`assemble_ambient.py` (FINAL assembler: voice + each clip's real audio — final gain 0.15, rule 10; honors
+`MUTE_AMBIENT`; silent sources → auto-silence) · `finalize_ending.py` (LAST step, rule 11: append
+`assets/ending.mov` + re-encode 1080p60; auto 9:16/16:9) · `regen_tts.py` (ANTI-LEAK cloned TTS: per-clip
+whisper verify + retries — the default voice step) · `check_tts.py` (transcript-check report) ·
+`fix_pauses.py`/`fix_pauses_lib.py`/`regen_fix.py` (断句 audit: silencedetect + difflib line-boundary
+mapping → regen mid-line-pause scenes; the step-3 prosody pass) · `preview_parts.py` (per-part
+预览_A….mp4, voice+ambient, `PART_MAP`-aware — the segment-preview checkpoint) · `build_photos.py`
+(photo→video Ken-Burns via PIL subpixel affine — user-request ONLY now, rule 9: stills default to pure
+static `-loop 1`; zoompan always banned) ·
+`make_cover.py` (小红书封面本地排版 — MODE C, explicit user approval only) · `cover_bridge.py`
 (localhost 图片下载桥, ChatGPT/IG 签名URL专用) ·
 `render16.py` + `assemble16.py` (16:9 / 1920×1080 variant from the same scenes/timing/captions) ·
 `reframe_scenes.py` (full-bleed: crop landscape→9:16 tracking the player, via video-autoreframe) ·
-`build_ig.py` (scale native-vertical Instagram clips AND `ig_ph_*` photo clips → `build/reframed/` keys).
+`reframe_span.py` (contiguous montage slices: ONE YOLO pass per span split into per-slice keys; skips
+vertical stems + `FIT_WINDOWS`) ·
+`build_ig.py` (native-vertical + `ig_ph_*` clips → `build/reframed/` keys; cover-crop scale so non-9:16
+never stretches; respects `IG_EXCLUDE`).
 render.py prefers a `build/reframed/<stem>_<tin>_<dur>.mp4` if present (full-bleed) else blur-fill — see
 `references/vertical-footage-and-instagram.md`.
 

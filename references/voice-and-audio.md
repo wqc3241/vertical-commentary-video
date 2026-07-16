@@ -63,12 +63,32 @@ default to it.
 Note: F5-TTS has a buggy interpreter teardown (`config_init_hash_seed`) that fires AFTER the wav is
 written — `clone.py` hard-exits 0 to hide it. The output is fine.
 
+## 断句/语气 audit — MANDATORY after TTS, before captions (2026-07-16; produced "完成度非常高" audio)
+F5-TTS occasionally inserts a prosody break MID-phrase ("深圳|女孩", "李慧|说") even when the transcript
+verifies clean. Whisper word-gap timestamps CANNOT catch these (the gaps hide inside word spans) — audit
+the ACOUSTICS instead. `fix_pauses.py` (+`fix_pauses_lib.py`, `regen_fix.py` for targeted re-takes), run
+with the voice-clone venv:
+1. **Detect real pauses**: ffmpeg `silencedetect=noise=-32dB:d=0.28` per scene wav.
+2. **Map pauses to the 断句**: whisper word timestamps + difflib `SequenceMatcher` align the transcript
+   to the caption lines (survives digit/homophone/traditional-script drift), giving each caption-line
+   boundary a time. Boundary matching must be EXACT — a ±1-word tolerance masked a real "李慧|说" break.
+3. **Judge**: a pause AT a "/" line boundary = correct prosody, keep. A pause INSIDE a line = break →
+   regenerate that scene (same anti-leak flow as regen_tts: synth → whisper-verify → keep best take)
+   until the audit reports ZERO intra-line pauses.
+Upstream rule that makes this work: write the `vo` with "/" at every intended breath point, clauses
+≤20 chars — TTS phrases short clauses far better, and the audit then has true boundaries to check.
+If any scene is regenerated after previews, REBUILD `build/audio_master.wav` (concat in scene order)
+before final assembly — a stale master silently ships the old takes.
+
 ## Ambient 轻原声 — the deliverable ALWAYS carries it (2026-07 standard)
 The final video beds each clip's ORIGINAL audio (ball strikes, crowd, ceremony speech) under the
-narration. Gain **0.30** (0.14 was inaudible). For TTS voice, build the voice master first
-(concat `build/audio/<id>.wav` in scene order → `build/audio_master.wav`), then:
+narration. **Final gain 0.15** (2026-07-16: 0.30 masked the voice — user had it halved; 0.14-0.15 with
+loudnorm'd voice on top is right; previews may run 0.30 for review). Only REAL venue sound qualifies —
+produced IG reels' music beds go in `scenes.py MUTE_AMBIENT` (honored by preview_parts + assemble_ambient).
+For TTS voice, build the voice master first (concat `build/audio/<id>.wav` in scene order →
+`build/audio_master.wav`), then:
 ```bash
-python build/assemble_ambient.py build/audio_master.wav 0.30    # or build/voice/full48k.wav for a recorded take
+python build/assemble_ambient.py build/audio_master.wav 0.15    # or build/voice/full48k.wav for a recorded take
 ```
 - Silent sources (photo `ig_ph_*` clips, muted reels) are auto-padded with silence — `seg_audio()`
   probes for an audio stream first; keep that fallback when copying the script forward.
