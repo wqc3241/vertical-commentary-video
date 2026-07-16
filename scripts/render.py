@@ -83,8 +83,8 @@ def _scrim(img,top=140,bot=210):
     d=ImageDraw.Draw(img)
     for y in range(H): d.line([(0,y),(W,y)],fill=(0,0,0,int(top+(bot-top)*(y/H))))
 
-def make_results_card(path):
-    cfg=getattr(S,"RESULTS_CARD",None)
+def make_results_card(path, cfg=None):
+    cfg=cfg or getattr(S,"RESULTS_CARD",None)
     img=Image.new("RGBA",(W,H),(0,0,0,0)); _scrim(img,150,205); d=ImageDraw.Draw(img)
     if not cfg: img.save(path); return
     draw_run(d,70,196,cfg.get("title","战绩"),104,WHITE,sw=2,sfill=(0,0,0,170))
@@ -185,7 +185,8 @@ def render_scene(sc):
         _render_base(os.path.join(SRC,sc["src"]+".mp4"), sc["tin"], D, card, base)
     inputs=["-i",base]; overlays=[]; idx=1
     if card:
-        cardpng=os.path.join(PNG,("results" if "results" in sc["treat"] else "poster")+".png")
+        key=sc["treat"].split(":",1)[1]
+        cardpng=os.path.join(PNG,("results.png" if key=="results" else "poster.png" if key=="poster" else f"card_{key}.png"))
         inputs+=["-loop","1","-t",f"{D:.3f}","-i",cardpng]; overlays.append((idx,None)); idx+=1
     else:
         if sc.get("chip"):
@@ -234,10 +235,13 @@ def assemble_voice(wav):
 if __name__=="__main__":
     cmd=sys.argv[1] if len(sys.argv)>1 else "all"
     if cmd=="assets":
-        make_overlay(); make_results_card(os.path.join(PNG,"results.png")); make_poster_card(os.path.join(PNG,"poster.png")); print("bg+cards rendered")
+        make_overlay(); make_results_card(os.path.join(PNG,"results.png")); make_poster_card(os.path.join(PNG,"poster.png"))
+        for _k,_c in getattr(S,"CARDS",{}).items(): make_results_card(os.path.join(PNG,f"card_{_k}.png"), _c)
+        print("bg+cards rendered")
     elif cmd=="scene": render_scene(next(s for s in SCENES if s["id"]==sys.argv[2]))
     elif cmd=="all":
         make_overlay(); make_results_card(os.path.join(PNG,"results.png")); make_poster_card(os.path.join(PNG,"poster.png"))
+        for _k,_c in getattr(S,"CARDS",{}).items(): make_results_card(os.path.join(PNG,f"card_{_k}.png"), _c)
         for sc in SCENES: render_scene(sc)
     elif cmd=="assemble": assemble()
     elif cmd=="assemble-voice": assemble_voice(sys.argv[2])

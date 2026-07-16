@@ -26,9 +26,10 @@ def has_audio(path):
     r=subprocess.run(["ffprobe","-v","error","-select_streams","a","-show_entries","stream=index","-of","csv=p=0",path],capture_output=True,text=True)
     return bool(r.stdout.strip())
 
+MUTE=getattr(S,"MUTE_AMBIENT",set())
 def seg_audio(stem, tin, dur, out):
     src=os.path.join(SRC,stem+".mp4")
-    if has_audio(src):
+    if stem not in MUTE and has_audio(src):
         run(["ffmpeg","-y","-loglevel","error","-ss",f"{tin:.3f}","-t",f"{dur:.3f}",
              "-i",src,
              "-af","aresample=48000,highpass=f=90,alimiter=limit=0.9","-ac","2","-ar","48000","-vn",out])
