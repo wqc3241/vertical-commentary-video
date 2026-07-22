@@ -24,7 +24,7 @@ def words(wav):
         for w in seg.get("words",[]): out.append((w["word"].strip(),w["start"],w["end"]))
     return out, "".join(x["text"] for x in j["segments"])
 def silences(wav):
-    r=subprocess.run(["ffmpeg","-i",wav,"-af","silencedetect=noise=-32dB:d=0.28","-f","null","-"],capture_output=True,text=True)
+    r=subprocess.run(["ffmpeg","-i",wav,"-af","silencedetect=noise=-34dB:d=0.24","-f","null","-"],capture_output=True,text=True)
     out=[]; st=None
     for line in r.stderr.splitlines():
         m=re.search(r"silence_start: ([0-9.]+)",line)
