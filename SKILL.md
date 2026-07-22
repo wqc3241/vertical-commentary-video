@@ -142,8 +142,9 @@ clip, fix one line — doesn't need a fresh gate; a new script or a new footage 
 3. **Segment-preview checkpoint (the user's standard review flow, 2026-07).** After rendering, do NOT deliver a
    one-shot final: assemble **per-part previews** (`preview_parts.py 0.30` → 预览_A..E.mp4, each = that part's
    scenes + voice + ambient at final quality), send them, and WAIT for segment feedback ("D3 不要卡" / "预览通过").
-   Only then concat the full deliverable. Long videos: parts = the script's chapters (~1min each); short ones may
-   collapse to 2-3 parts, but the checkpoint stays. Fixes after preview are surgical: re-render the named scene(s),
+   Only then concat the full deliverable. Parts target ~1 MINUTE each — part count = ceil(runtime/60s),
+   split at scene boundaries (user rule 2026-07-17: a ~2-min video = 2 parts, NOT one part per story
+   beat; five ~20s files is over-splitting). The checkpoint stays regardless of length. Fixes after preview are surgical: re-render the named scene(s),
    rebuild only the affected part previews (`preview_parts.py 0.30 BCD`), then final-assemble.
 
 ## Workflow (in order)
@@ -165,8 +166,12 @@ cp ~/.claude/skills/vertical-commentary-video/scripts/*.py "$PROJ/build/"
   Claude-in-Chrome → chatgpt.com → open their copy project (`/g/g-p-…/project` URL from the DOM,
   clicking the name only expands it) → send ONE single-line prompt (newlines auto-send!) that
   includes the topic, the VERIFIED facts, spoken length (~60–90s), ≤20-char sentences, numbered
-  scenes, and asks for 标题/正文/tags too → wait 30–60s → harvest with `get_page_text`. Save the
-  publish copy to `<project>/小红书发布文案.md`.
+  scenes, and asks for 标题/正文/tags too — **and REQUIRE a fact-check first**: prompt 里明确写
+  「先逐条核对我给出的事实清单再写稿;只使用清单内的事实,任何清单外或不确定的说法要标注出来,
+  不要写进正文」(2026-07-22 rule; GPT 曾把「仅入学前奖金放开」写成「取消奖金限制」被用户抓出 —
+  政策/规则类表述必须精确到适用范围) → wait 30–60s → harvest with `get_page_text`. Canvas mode
+  often stalls mid-stream: ask for 纯文本对话回复 not canvas, and reload the page to see server-side
+  truth before assuming failure. Save the publish copy to `<project>/小红书发布文案.md`.
 - **Copy-style rules the user requires — put these IN the ChatGPT prompt AND enforce when you map to captions
   (2026-07 feedback):**
   1. **数字一律用阿拉伯数字**(比分 3-6、时间 5小时15分、纪录 第15次、25冠),**不要中文数字**。
@@ -174,6 +179,8 @@ cp ~/.claude/skills/vertical-commentary-video/scripts/*.py "$PROJ/build/"
      (念白 `vo` 仍要中文数字给 F5-TTS,见下条;GPT 出稿用阿拉伯数字,你在 CAPTIONS 里保留数字、在 `vo` 里转中文。)
   2. **语句通顺自然、口语化,不要浮夸 / 过度夸张的说法。**
   3. **少用「不是…而是…」这类转折句式**(以及其它生硬的对比转折)。
+  4. **英文大写缩写**:字幕/文案保留原文 (NCAA/TCU/ATP),念白 `vo` 写成顿号逐字母 `N、C、A、A`(见 step 3)。
+  5. **人名用该账号惯用的中文译名;用户点名的昵称优先**(例:Learner Tien = 钱学生, 2026-07-22)。
 - Treat the output as a DRAFT. **→ SCRIPT GATE: present the full script (per-scene vo + 断句 + 标题/正文/tags,
   with any factual/style fixes you made) and WAIT for the user's approval before touching footage.** Only if the
   browser/ChatGPT is genuinely unavailable may you draft the script yourself — and say so explicitly when presenting.
@@ -231,14 +238,23 @@ Whisper word-gap timestamps CANNOT detect these — audit acoustically:
 /Volumes/Storage/voice-clone/venv/bin/python "$PROJ/build/fix_pauses.py"        # audit + auto-regen flagged scenes
 /Volumes/Storage/voice-clone/venv/bin/python "$PROJ/build/regen_fix.py" S3,S7   # targeted re-takes if any remain
 ```
-Method (in `fix_pauses.py`/`fix_pauses_lib.py`): ffmpeg `silencedetect` (-32dB / 0.28s) finds real pauses →
-whisper word positions + difflib `SequenceMatcher` map each pause onto the caption-line 断句 boundaries
-(survives digit/homophone drift; exact ±0 boundary match — a ±1 tolerance masked a real "李慧|说" break
-once). A pause AT a "/" boundary is correct prosody; a pause INSIDE a line is a break → regenerate that
-scene and re-pick takes until ZERO intra-line pauses. Write the `vo` with "/" at every intended breath
-point (short clauses ≤20 chars) — the TTS phrases far better and the audit has true boundaries to check
-against. If scenes are regenerated AFTER previews, rebuild `audio_master.wav` before final assembly
-(stale-master bug, 2026-07).
+Method (in `fix_pauses.py`/`fix_pauses_lib.py`): ffmpeg `silencedetect` (-34dB / 0.24s, tightened
+2026-07-21) finds real pauses → whisper word positions + difflib `SequenceMatcher` map each pause onto
+the caption-line 断句 boundaries (survives digit/homophone drift; exact ±0 boundary match — a ±1
+tolerance masked a real "李慧|说" break once). A pause AT a line boundary is correct prosody; a pause
+INSIDE a line is a break → regenerate that scene and re-pick takes until ZERO intra-line pauses
+(gaps whose context contains a latin letter are exempt — 顿号-spelled acronym letters pause legitimately).
+**vo 写法 (2026-07-21/22 定稿):** clauses ≤20 chars separated by ,。 — **NEVER put "/" in `vo`**:
+F5 vocalizes each slash as an audible junk syllable (one scene grew 14 extras; regen_tts strips "/"
+defensively but don't write them). **ALL-CAPS acronyms = 顿号逐字母** in vo (NCAA→`N、C、A、A`,
+TCU→`T、C、U`; user ear-tested — hanzi phonetics and glued NCAA both rejected), CAPTIONS keep latin
+NCAA; regen_tts's acronym gate verifies every letter is heard. 读音有争议时:`clone.py say` 生成 3-4 个
+候选读法试听 wav 放项目根目录让用户点选 — 你没有耳朵,不要盲猜。用户报"生硬/音调不对"= 韵律问题:
+把 regen 提前收稿阈值 sim 0.88→0.95 强制满 5 稿择优。If scenes are regenerated AFTER previews,
+rebuild `audio_master.wav` before final assembly (stale-master bug, 2026-07). 16G Mac 上 F5 连续跑会
+死机重启:必须加 `PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.7`(故意让 MPS 初始化失败回落 CPU — 慢但整机稳,
+不要"修复") + `caffeinate -i nice -n 10`,驱动脚本 `nohup … & disown` 逐场景独立进程,完成标志文件
+监控(启动前先 rm 旧标志防误报);TCC 中途撤销卷授权时改走 Desktop Commander。详见 voice-and-audio.md。
 Or the user records one take → `align.py` (see reference).
 
 ### 4. Word-exact captions  → `references/voice-and-audio.md`
@@ -283,7 +299,7 @@ python build/finalize_ending.py "$PROJ/<OUTPUT_NAME>"
 ### 7. Verify + deliver — LOOK at every scene, not just a 14-frame sweep
 `contact_sheet.py video <out.mp4> 14` → Read it. Confirm chips, captions in sync, card **scores +
 names**, the win/trophy is YOUR player, the poster. For recorded takes, sync-spot-check (reference).
-**Then run the FOUR checks the user keeps catching (see `footage-sourcing.md`):**
+**Then run the FIVE checks the user keeps catching (see `footage-sourcing.md`):**
 1. **Logo/card scan** — tile a frame from every scene's start + mid + each montage clip start, Read it,
    and replace any window that lands on a Netflix/sponsor/title/date CARD (luma checks miss these).
 2. **Flash-free** — luma-profile each source (`signalstats`) and confirm no window has a near-black or
@@ -293,6 +309,10 @@ names**, the win/trophy is YOUR player, the poster. For recorded takes, sync-spo
    walk, celebration): full-res frames at BOTH ends of the window; confirm subject via the rule-3
    escalation ladder (brand logo > kit construction > scorebug), not colour alone. A window can start
    on your player and end on the opponent after an in-window camera cut — probe the last second.
+5. **Re-scan after EVERY duration change** — re-recording even ONE scene's voice changes all montage
+   slice lengths and shifts every window: after any re-assembly, re-extract frames and repeat checks
+   1+4 on the shifted windows. A full-screen "COACH" title card drifted into frame TWICE this way
+   (2026-07-22) — the previous QC pass does not protect the new cut.
 Deliver the MP4. Re-render only changed scenes (`render.py scene <ID>` / `render16.py scene <ID>`).
 
 **内容章节 — the 4th standard deliverable (user standard 2026-07-16), alongside 成片/封面图/发布文案:**
@@ -316,6 +336,15 @@ per video:
 > 大标题「【主标,≤6字,压缩自小红书标题】」厚重宋体衬线白字深色描边 · 其下金色副标题「【副标,≤10字】」·
 > 左上角红棕圆角胶囊白字「网球故事」(不压标题) · 底部居中白字「【主人公人名】」两侧金色小圆点 ·
 > 竖版3比4 · 所有汉字逐字准确 · 除四处文字外无任何其他文字/水印/logo
+
+**封面选型 — 按内容类型选,不要一律套人物模板 (user rule 2026-07-22):**
+- **人物专题**(单一主角的故事)→ 上面的四区冻结模板原样用(胶囊+主标+副标+人名)。
+- **话题片/群像/盘点**(如「NCAA 的魔力」这类多人主题)→ **多位主角头像特写拼版**(2-4 人竖条并排,
+  人脸取自已验证身份的素材帧或官方照片),**只保留主标+副标 — 不要「网球故事」胶囊、不要人名**,
+  字体可以换(现代粗黑体等)。拼版自己合成好再注入 GPT(留出标题头部空间、避开路人/新闻条;
+  `ffmpeg -map_metadata -1` 剥掉 XMP 再 b64 分块注入)。
+- GPT 项目会惯性沿用老模板:prompt 必须显式写「这期不要胶囊、不要人名」;若它仍套错,不要重新生成,
+  用「基于你上一张生成的封面图修改:…」来纠正(重出图会连底图一起换掉)。
 
 **MODE A — 真实照片底图 + GPT 只做排版 (THE DEFAULT; user decision 2026-07-13,不要纯AI画人):**
 1. **Find the real photo**: the subject's IG / official collab posts (@wta·@wimbledon×player "champion"
@@ -373,15 +402,17 @@ knobs + "+" contiguous-slice markers) · `detect_shots.py` · `pick_ends.py` · 
 `shotsheet.py` · `pick_clean.py` (flash-free window finder from `/tmp/lum_*.txt` signalstats profiles) ·
 `assemble_ambient.py` (FINAL assembler: voice + each clip's real audio — final gain 0.15, rule 10; honors
 `MUTE_AMBIENT`; silent sources → auto-silence) · `finalize_ending.py` (LAST step, rule 11: append
-`assets/ending.mov` + re-encode 1080p60; auto 9:16/16:9) · `regen_tts.py` (ANTI-LEAK cloned TTS: per-clip
-whisper verify + retries — the default voice step) · `check_tts.py` (transcript-check report) ·
+`assets/ending.mov` + re-encode 1080p60; auto 9:16/16:9) · `regen_tts.py` (QUADRUPLE-GATE cloned TTS — the default voice step: anti-leak probe + junk-insert
+detection + acronym-completeness + zero intra-line pauses per take, 5 takes, best-of; strips "/" from vo;
+TARGETS-resumable) · `check_tts.py` (transcript-check report) ·
 `fix_pauses.py`/`fix_pauses_lib.py`/`regen_fix.py` (断句 audit: silencedetect + difflib line-boundary
 mapping → regen mid-line-pause scenes; the step-3 prosody pass) · `preview_parts.py` (per-part
 预览_A….mp4, voice+ambient, `PART_MAP`-aware — the segment-preview checkpoint) · `build_photos.py`
 (photo→video Ken-Burns via PIL subpixel affine — user-request ONLY now, rule 9: stills default to pure
 static `-loop 1`; zoompan always banned) ·
 `make_cover.py` (小红书封面本地排版 — MODE C, explicit user approval only) · `cover_bridge.py`
-(localhost 图片下载桥, ChatGPT/IG 签名URL专用) ·
+(localhost 图片下载桥, ChatGPT/IG 签名URL专用) · `publish_bridge.py` (发布桥: 本地文件服务器喂
+成片/封面给创作者后台上传控件, CORS+PNA 头齐全) ·
 `render16.py` + `assemble16.py` (16:9 / 1920×1080 variant from the same scenes/timing/captions) ·
 `reframe_scenes.py` (full-bleed: crop landscape→9:16 tracking the player, via video-autoreframe) ·
 `reframe_span.py` (contiguous montage slices: ONE YOLO pass per span split into per-slice keys; skips

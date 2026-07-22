@@ -68,15 +68,18 @@ F5-TTS occasionally inserts a prosody break MID-phrase ("深圳|女孩", "李慧
 verifies clean. Whisper word-gap timestamps CANNOT catch these (the gaps hide inside word spans) — audit
 the ACOUSTICS instead. `fix_pauses.py` (+`fix_pauses_lib.py`, `regen_fix.py` for targeted re-takes), run
 with the voice-clone venv:
-1. **Detect real pauses**: ffmpeg `silencedetect=noise=-32dB:d=0.28` per scene wav.
+1. **Detect real pauses**: ffmpeg `silencedetect=noise=-34dB:d=0.24` per scene wav (tightened 2026-07-21).
 2. **Map pauses to the 断句**: whisper word timestamps + difflib `SequenceMatcher` align the transcript
    to the caption lines (survives digit/homophone/traditional-script drift), giving each caption-line
    boundary a time. Boundary matching must be EXACT — a ±1-word tolerance masked a real "李慧|说" break.
 3. **Judge**: a pause AT a "/" line boundary = correct prosody, keep. A pause INSIDE a line = break →
    regenerate that scene (same anti-leak flow as regen_tts: synth → whisper-verify → keep best take)
    until the audit reports ZERO intra-line pauses.
-Upstream rule that makes this work: write the `vo` with "/" at every intended breath point, clauses
-≤20 chars — TTS phrases short clauses far better, and the audit then has true boundaries to check.
+Upstream rules that make this work: clauses ≤20 chars, separated by ,。 ONLY — **never write "/"
+breath markers in `vo`**: F5 vocalizes each slash as a junk syllable (2026-07-21, one scene grew 14
+extra syllables; regen_tts now strips "/" defensively). The audit's boundaries come from CAPTIONS
+lines. Letter-gaps inside a 顿号-spelled acronym (N、C、A、A) are legitimate micro-pauses —
+regen_tts exempts gaps whose context contains a latin letter, or the zero-gap gate would kill every take.
 If any scene is regenerated after previews, REBUILD `build/audio_master.wav` (concat in scene order)
 before final assembly — a stale master silently ships the old takes.
 
@@ -135,3 +138,27 @@ back to proportional timing.
 **Re-record cache:** transcripts cache in `build/capjson/`. The script re-transcribes any scene whose
 wav is newer than its cache, so a re-record is picked up automatically. (If in doubt, `rm -rf
 build/capjson` and re-run.)
+
+
+## 英文缩写读音 + 读法仲裁(2026-07-22 定稿,NCAA网球 项目)
+- **ALL-CAPS 缩写在 `vo` 里一律写成顿号分隔的逐字母**:NCAA → `N、C、A、A`,TCU → `T、C、U`。
+  字幕仍显示 NCAA/TCU。已被用户否掉的写法:汉字注音(恩西诶诶,"听感不像英文字母")、连写 NCAA(乱拼)、
+  空格 `N C A A`(不稳)。regen_tts 的缩写门会校验每个字母都被 whisper 听到(听成 "NCA" 即废稿重掷)。
+- **你没有耳朵——读音争议不要盲猜**:用 `clone.py say` 批量生成 3-4 种候选读法的同句试听 wav
+  (放项目根目录,命名 `XX读法试听1_描述.wav`),让用户点选,一轮定案。
+- **"生硬/音调不对" 类反馈**:读法本身对、韵律差 → 把 regen 的提前收稿阈值从 sim≥0.88 提到 0.95,
+  强制每段满 5 稿,在全部过门的稿里取最高 sim(v7 实测 S9C 首稿 1.000、S1B 0.976)。
+- 转写核对的假警报清单新增:whisper 把"一百"写成"100"(归一化里做 一零零→一百),繁体输出(归一化表),
+  顿号字母被写成 "NCAA"(这是**正确**信号,说明读音就是字母音)。
+
+## 16G Mac 跑 F5 的防死机跑法(2026-07-21/22,连续 3 次整机死机后的定式)
+- 前缀:`PYTHONHASHSEED=0 VOICE_SPEED=0.85 PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.7 OMP_NUM_THREADS=4`
+  + `caffeinate -i nice -n 10`。watermark=0.7 会让 torch MPS 初始化失败回落 **CPU** —— 这是特性不是
+  bug:每稿慢一点(~2.5min)但整机不再被统一内存挤爆;不要"修好"它。
+- **驱动脚本必须 `nohup ... & disown` 完全脱离会话**——Claude 会话退出/应用重启曾三次带走后台任务。
+  逐场景独立进程(`for sid in ...; do python regen_tts.py $sid; done`),崩一段只损一段;
+  regen_tts 的 keep-existing 分支保证 durations.json 每次都完整。
+- 监控用完成标志文件(`build/xxx_done`),**启动新一轮前必须先删旧标志**(陈旧标志会造成完成误报);
+  监视器可能因 TCC 读不到卷而沉默——用 Desktop Commander 亲自查真实状态。
+- macOS 可能中途撤销终端对可移动卷的授权(整卷 EPERM、`stat` 能过 `ls` 不能过):数据没丢,
+  改走 Desktop Commander 通道继续,并提醒用户去 系统设置→隐私与安全性 恢复授权。

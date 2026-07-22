@@ -5,12 +5,17 @@ This is the ONLY file that changes per video; the engine scripts stay as-is.
 A scene = one chunk of narration (`vo`) shown over footage (or a graphic card). The narration
 length (durations.json) drives each scene's length.
 
-NUMBERS — keep two forms in sync:
-  - `vo` (SPOKEN, fed to the cloned voice): write numbers as CHINESE numerals (六比三, 二零二六),
-    otherwise F5-TTS reads them as English digits.
-  - `CAPTIONS` (DISPLAYED): the user's exact lines, numbers as DIGITS (6-3) — clearer to read.
-  Each CAPTIONS line MUST be word-for-word the same as the spoken text (only numerals differ),
-  or the word-exact alignment in caption_times.py will drift.
+NUMBERS / SPOKEN-TEXT RULES — keep vo and CAPTIONS in sync:
+  - `vo` (SPOKEN): numbers as CHINESE numerals (六比三, 二零二六) or F5-TTS reads English digits.
+  - `vo` MUST NOT contain "/" breath markers — F5 vocalizes each slash as a junk syllable
+    (2026-07-21: 14 extra syllables in one scene; the user heard them). Use plain ,。 only.
+    regen_tts.py strips any "/" defensively, but don't write them.
+  - ALL-CAPS acronyms in `vo` are written LETTER-BY-LETTER with 顿号: NCAA -> N、C、A、A,
+    TCU -> T、C、U (user ear-tested 2026-07-22; hanzi phonetics 恩西诶诶 and glued NCAA both rejected).
+    CAPTIONS keep the latin form (NCAA). regen_tts verifies every letter is heard.
+  - `CAPTIONS` (DISPLAYED): the user's exact lines, numbers as DIGITS (6-3).
+  Each CAPTIONS line MUST be word-for-word the same as the spoken text (only numerals and the
+  acronym notation differ), or the word-exact alignment in caption_times.py will drift.
 """
 
 OUTPUT_NAME = "output_9x16.mp4"          # final file, written to the project root
