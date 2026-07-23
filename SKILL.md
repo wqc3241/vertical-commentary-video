@@ -317,6 +317,10 @@ Deliver the MP4. Re-render only changed scenes (`render.py scene <ID>` / `render
 
 **内容章节 — the 4th standard deliverable (user standard 2026-07-16), alongside 成片/封面图/发布文案:**
 a chapter list with timestamps + themes, appended to `小红书发布文案.md`.
+- **This list feeds the PLATFORM chapter features at publish time — it must NOT be pasted into the
+  XHS note body** (user rule 2026-07-23): XHS = 内容设置→添加章节, set during the FIRST publish
+  (locked afterwards — unlocking requires re-uploading the video); douyin = 章节功能 (智能章节 or
+  manual). See the `publish-xhs-douyin` skill.
 - **Chapter count ≤ the video's length in minutes** (6-min video → ≤6 chapters, 5-min → ≤5; round the
   runtime UP). With more scenes than that, MERGE adjacent scenes into one chapter per story beat
   (起步→夺冠→爆发…), don't emit one chapter per scene.
@@ -385,6 +389,17 @@ vanished) and cmd+A-delete can fail so text ACCUMULATES → always `javascript_t
 `execCommand('selectAll')+('delete')+('insertText',P)`, VERIFY key substrings in `#prompt-textarea`
 innerText, then JS-click `button[data-testid="send-button"]`. Newlines auto-send — ONE line only.
 
+### 9. 发布 — when the user asks to publish, use the `publish-xhs-douyin` skill
+Both platforms' web backends are fully automatable from Claude-in-Chrome (proven 2026-07-23):
+video upload via the window.name relay + `publish_bridge.py`, title/body/tags, chapter features,
+declarations, custom cover, and 定时发布. The complete dual-platform playbook (step order, injection
+snippets, per-platform quirks, timezone semantics, white-screen recovery) lives in the separate
+**`publish-xhs-douyin`** skill — invoke it; do not improvise from memory. Non-negotiable user rules
+enforced there: 🎾 title prefix (tennis); XHS = chapters via 添加章节 **at first publish** (locked
+after; never in the body text) + 原创声明 ON; douyin = 自主声明「内容为个人观点或见解」+ chapters
+(智能章节 or manual) + last-tag trailing space. Default schedule slot: Beijing 19:00 (XHS picker IS
+Beijing time; douyin picker is browser-local — convert).
+
 ## Why it looks the way it does
 - **Dark moving blur fill**: the footage is scaled-to-cover, blurred, and **darkened ~0.42** behind
   the centred 16:9 strip, with a clay overlay darkening top/bottom for text. Dynamic (not a static
@@ -412,7 +427,8 @@ mapping → regen mid-line-pause scenes; the step-3 prosody pass) · `preview_pa
 static `-loop 1`; zoompan always banned) ·
 `make_cover.py` (小红书封面本地排版 — MODE C, explicit user approval only) · `cover_bridge.py`
 (localhost 图片下载桥, ChatGPT/IG 签名URL专用) · `publish_bridge.py` (发布桥: 本地文件服务器喂
-成片/封面给创作者后台上传控件, CORS+PNA 头齐全) ·
+成片/封面给创作者后台上传控件, CORS+PNA 头齐全 — the publish workflow itself lives in the
+`publish-xhs-douyin` skill) ·
 `render16.py` + `assemble16.py` (16:9 / 1920×1080 variant from the same scenes/timing/captions) ·
 `reframe_scenes.py` (full-bleed: crop landscape→9:16 tracking the player, via video-autoreframe) ·
 `reframe_span.py` (contiguous montage slices: ONE YOLO pass per span split into per-slice keys; skips
