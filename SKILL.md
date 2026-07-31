@@ -244,6 +244,32 @@ the caption-line 断句 boundaries (survives digit/homophone drift; exact ±0 bo
 tolerance masked a real "李慧|说" break once). A pause AT a line boundary is correct prosody; a pause
 INSIDE a line is a break → regenerate that scene and re-pick takes until ZERO intra-line pauses
 (gaps whose context contains a latin letter are exempt — 顿号-spelled acronym letters pause legitimately).
+
+**SECOND direction — 句末"该停没停" (added 2026-07-30, 选拍指南系列; user caught it by ear, the whole
+existing audit missed it):** `fix_pauses.py` only finds pauses in the WRONG place. F5-TTS ALSO **swallows
+the pause at a 。？！ boundary**, running two sentences together ("平衡多选择头轻。挥重按…" → 0.0s gap,
+user: 「"轻，挥"在台词里连上了」). Audit + fix:
+```bash
+/Volumes/Storage/voice-clone/venv/bin/python "$PROJ/build/check_boundaries.py"   # 全场景; -> boundary_audit.json
+/Volumes/Storage/voice-clone/venv/bin/python "$PROJ/build/insert_pauses.py" S1,S4  # 修被标记的场景
+```
+Three findings that cost a full debug cycle — don't repeat them:
+1. **Do NOT measure gaps from whisper word timestamps.** Chinese word timestamps are contiguous
+   (`end[i]==start[i+1]`), so the gap is ~0 by construction → 46/54 scenes falsely flagged. `check_boundaries.py`
+   uses ffmpeg `silencedetect` and maps each caption-line boundary to a TIME, then asks "is there a silence
+   within ±0.28s of it".
+2. **Only 。？！ boundaries need a pause.** A caption line split at a ，(or at no punctuation at all) is a
+   DISPLAY break, not a breath — requiring silence there flags ~80% of all boundaries. Classify each boundary
+   by looking up the punctuation in `vo` (map cap-space→vo-space with difflib + a ±3-char window; a naive
+   char-count map breaks because captions use 阿拉伯 digits and vo uses 中文数字: "97"=2 chars vs "九十七"=3).
+   Real defect rate on a clean 7-episode build: **24 defects / 54 scenes**, i.e. it happens constantly.
+3. **Regenerating the scene does NOT fix it — insert silence surgically instead.** Each F5 take randomly
+   swallows a DIFFERENT 句号 (measured: original take 1 bad boundary, 3 fresh takes 3-4 bad each; the
+   original was the best take). `insert_pauses.py` cuts the EXISTING wav at the boundary timestamp and
+   splices in 0.22s of silence — every other sample stays bit-identical, so 音色/语气/其他停顿 are preserved
+   and the fix is deterministic. Verify acoustically (`silencedetect` shows a new interval at that timestamp);
+   the whisper-based re-check can false-alarm on 繁体 transcription (原则→原則 shifts the word mapping).
+After fixing, durations change (+0.22s each) → re-run `caption_times.py`, re-render those scenes, rebuild previews.
 **vo 写法 (2026-07-21/22 定稿):** clauses ≤20 chars separated by ,。 — **NEVER put "/" in `vo`**:
 F5 vocalizes each slash as an audible junk syllable (one scene grew 14 extras; regen_tts strips "/"
 defensively but don't write them). **ALL-CAPS acronyms = 顿号逐字母** in vo (NCAA→`N、C、A、A`,
@@ -420,6 +446,8 @@ knobs + "+" contiguous-slice markers) · `detect_shots.py` · `pick_ends.py` · 
 `assets/ending.mov` + re-encode 1080p60; auto 9:16/16:9) · `regen_tts.py` (QUADRUPLE-GATE cloned TTS — the default voice step: anti-leak probe + junk-insert
 detection + acronym-completeness + zero intra-line pauses per take, 5 takes, best-of; strips "/" from vo;
 TARGETS-resumable) · `check_tts.py` (transcript-check report) ·
+`check_boundaries.py` (句末该停没停 audit: silencedetect + 边界时间映射 → boundary_audit.json) ·
+`insert_pauses.py` (外科式修复: 在连读时间点插 0.22s 静音, 不重新合成 — F5 重生成会随机吞掉别的句号) ·
 `fix_pauses.py`/`fix_pauses_lib.py`/`regen_fix.py` (断句 audit: silencedetect + difflib line-boundary
 mapping → regen mid-line-pause scenes; the step-3 prosody pass) · `preview_parts.py` (per-part
 预览_A….mp4, voice+ambient, `PART_MAP`-aware — the segment-preview checkpoint) · `build_photos.py`
