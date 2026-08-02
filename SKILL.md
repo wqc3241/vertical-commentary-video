@@ -160,18 +160,27 @@ cp ~/.claude/skills/vertical-commentary-video/scripts/*.py "$PROJ/build/"
 - Recent/ongoing event → **verify every fact with web search FIRST** (scores, opponents, records,
   dates; treat post-cutoff dates as unknown until checked). Names/scores go on screen — get them
   exact. These verified facts feed the ChatGPT prompt below so it can't invent numbers.
+  **省 token 三则 (2026-08-02 实测标定, 前期约占全会话 10–15%):**
+  ① **WebFetch 黑名单**: `atptour.com` / `scmp.com` / `rappler.com` 一律 403 — 别撞, 用 WebSearch
+  综述或维基; ② **系列/成对选题合并核查**(两人一轮查完, 实测省近半); ③ 中英文各查一遍是**必要**的
+  (中文维基与英文维基冲突正是这么发现的), 但同一事实别换关键词反复搜。
 - **MANDATORY — generate the 解说词 in the USER'S OWN ChatGPT via their browser; never just write
   it yourself.** The user has had to correct this repeatedly — skipping it is the #1 process
   mistake on this skill. Follow `~/.claude/skills/xhs-personal-vlog/references/copy-generation.md`:
-  Claude-in-Chrome → chatgpt.com → open their copy project (`/g/g-p-…/project` URL from the DOM,
-  clicking the name only expands it) → send ONE single-line prompt (newlines auto-send!) that
-  includes the topic, the VERIFIED facts, spoken length (~60–90s), ≤20-char sentences, numbered
-  scenes, and asks for 标题/正文/tags too — **and REQUIRE a fact-check first**: prompt 里明确写
-  「先逐条核对我给出的事实清单再写稿;只使用清单内的事实,任何清单外或不确定的说法要标注出来,
-  不要写进正文」(2026-07-22 rule; GPT 曾把「仅入学前奖金放开」写成「取消奖金限制」被用户抓出 —
-  政策/规则类表述必须精确到适用范围) → wait 30–60s → harvest with `get_page_text`. Canvas mode
-  often stalls mid-stream: ask for 纯文本对话回复 not canvas, and reload the page to see server-side
-  truth before assuming failure. Save the publish copy to `<project>/小红书发布文案.md`.
+  Claude-in-Chrome → **直接导航到项目主页
+  `https://chatgpt.com/g/g-p-68ba567096248191b368b84f132f3361/project`**(小红书文案生成; ID 固定,
+  别再"开首页→截图→翻侧栏→查 DOM 拿 href" — 那套多花两张截图和三四次调用) → send ONE single-line
+  prompt (newlines auto-send!) that includes the topic, the VERIFIED facts, spoken length, ≤20-char
+  sentences, numbered scenes, and asks for 标题/正文/tags too — **and REQUIRE a fact-check first**:
+  prompt 里明确写「先逐条核对我给出的事实清单再写稿;只使用清单内的事实,任何清单外或不确定的
+  说法要标注出来,不要写进正文」(2026-07-22 rule; GPT 曾把「仅入学前奖金放开」写成「取消奖金限制」
+  被用户抓出 — 政策/规则类表述必须精确到适用范围) → wait 30–60s(轮询用
+  `document.querySelector('button[data-testid="stop-button"]')` 判 streaming, 别截图) →
+  **harvest 只取最后一条 assistant 消息**: `[...document.querySelectorAll(
+  '[data-message-author-role="assistant"]')].pop().innerText` — `get_page_text` 会把你自己 1900 字的
+  提示词整个回读一遍(付两遍 token, 实测约占收稿量一半)。Canvas mode often stalls mid-stream: ask for
+  纯文本对话回复 not canvas, and reload the page to see server-side truth before assuming failure.
+  Save the publish copy to `<project>/小红书发布文案.md`.
 - **Copy-style rules the user requires — put these IN the ChatGPT prompt AND enforce when you map to captions
   (2026-07 feedback):**
   1. **数字一律用阿拉伯数字**(比分 3-6、时间 5小时15分、纪录 第15次、25冠),**不要中文数字**。
@@ -208,15 +217,22 @@ dark-blur letterbox is the FALLBACK, not the look.** Per scene, in order of pref
    re-centers at every cut and visibly jumps. Verify the tracked output per quality-rule 3.
 3. **Classic blur-letterbox landscape** ONLY where neither works (ambiguous 2-player wide rally the
    tracker can't follow, subject occluded by crowd, or the user prefers the broadcast frame) — declare
-   the window in `FIT_WINDOWS` so reframe skips it, and say which scenes fell back and why when
-   presenting. This is also the mandated treatment for uncertain-subject 横屏 (rule 12) and
-   can't-crop-the-whole-person photos (rule 9c): full frame/image centered, never a zoom guess.
+   the window in `FIT_WINDOWS` so reframe skips it (**implemented for real since 2026-08-02**: v2
+   reframe_scenes 读表跳过并撤下误裁的旧文件; 之前只有文档没有实现, 标了 7 个窗口全被白裁一轮),
+   and say which scenes fell back and why when presenting. This is also the mandated treatment for
+   uncertain-subject 横屏 (rule 12) and can't-crop-the-whole-person photos (rule 9c): full frame/image
+   centered, never a zoom guess.
 Mix per scene; `lock: True` every full-bleed/IG scene. Verify each clip's resolution and **eyeball
 frames** (`contact_sheet.py`) — content, surface, and which player is which. Match every scene's
 clip to its `vo` (round result → that match's **match point**, scanned from the reel's tail) and
 **confirm the player by kit colour** anchored to a known-champion shot — `footage-sourcing.md`
 covers match-point/identity/montage selection in detail; identity checks apply to IG clips too
 (search returns look-alikes and fan edits with baked-in text cards — reject those).
+**Token economy — 身份复核建表一次, 不重复读图 (2026-08-02, 黄泽林项目 113 张检查图约半数是重复
+确认同一批源):** 每个源只做一次全分辨率身份确认, 结论写进 scenes.py 头部的 IDENTITY ANCHORS 注释
+(我方=品牌+球衣+头饰, 对手=…, 陷阱时间点=卡片/画中画/对手庆祝), 之后同源的每个新窗口**对表**,
+只有单人特写/表上没有的存疑帧才再开图。全分辨率那一次不能省 — 两次差点用错人(吴易昺的握拳、
+莱赫奇卡的背影)都是缩略图看不出、原始分辨率才认出来的。
 **→ FOOTAGE GATE: present the per-scene clip plan (with the contact-sheet frames you verified) and WAIT for
 approval before step 3.** Montage note: clips are sliced **equally** (`D/n`), so a caption beat can spill onto the
 next clip — order clips so the important line (the punchline / the named player) lands on the RIGHT clip, and say
@@ -263,13 +279,19 @@ Three findings that cost a full debug cycle — don't repeat them:
    by looking up the punctuation in `vo` (map cap-space→vo-space with difflib + a ±3-char window; a naive
    char-count map breaks because captions use 阿拉伯 digits and vo uses 中文数字: "97"=2 chars vs "九十七"=3).
    Real defect rate on a clean 7-episode build: **24 defects / 54 scenes**, i.e. it happens constantly.
-3. **Regenerating the scene does NOT fix it — insert silence surgically instead.** Each F5 take randomly
+3. **Regenerating the scene does NOT fix it — insert the pause surgically instead.** Each F5 take randomly
    swallows a DIFFERENT 句号 (measured: original take 1 bad boundary, 3 fresh takes 3-4 bad each; the
-   original was the best take). `insert_pauses.py` cuts the EXISTING wav at the boundary timestamp and
-   splices in 0.22s of silence — every other sample stays bit-identical, so 音色/语气/其他停顿 are preserved
-   and the fix is deterministic. Verify acoustically (`silencedetect` shows a new interval at that timestamp);
-   the whisper-based re-check can false-alarm on 繁体 transcription (原则→原則 shifts the word mapping).
-After fixing, durations change (+0.22s each) → re-run `caption_times.py`, re-render those scenes, rebuild previews.
+   original was the best take). `insert_pauses.py` (v2, rewritten 2026-08-02) splices 0.22s into the
+   EXISTING wav — the rest of the take is untouched, so 音色/语气/其他停顿 are preserved.
+   **v1 曾把静音硬切进字中间 — 用户听出「强」字被劈开、整批撤销返工 (~1h)。v2 的三条硬规则:**
+   ① 切点必须落在 whisper 边界 ±0.25s 内的 **20ms-RMS 最低谷**; 低谷仍 >0.02 满幅 = 字没说完 →
+   **SKIP 该边界(宁可连读也不切字)** — 输出里的 `SKIP … 字未说完` 是特性不是失败;
+   ② 插入的是**本段自身最安静 0.22s 的克隆(室内底噪)**, 不是数字零 — 纯零在有底噪的语音里是可听见的"洞";
+   ③ 两端 10ms raised-cosine 淡入淡出 — 接缝采样跳变 >0.01 满幅就能听见"咔哒"。
+   修完自动用 boundary_report 复核 + durations.json 同步; whisper-based re-check can false-alarm on
+   繁体 transcription (原则→原則 shifts the word mapping).
+After fixing, durations change (+0.22s per accepted insert) → re-run `caption_times.py`, re-render those
+scenes, rebuild previews.
 **vo 写法 (2026-07-21/22 定稿):** clauses ≤20 chars separated by ,。 — **NEVER put "/" in `vo`**:
 F5 vocalizes each slash as an audible junk syllable (one scene grew 14 extras; regen_tts strips "/"
 defensively but don't write them). **ALL-CAPS acronyms = 顿号逐字母** in vo (NCAA→`N、C、A、A`,
@@ -279,8 +301,11 @@ NCAA; regen_tts's acronym gate verifies every letter is heard. 读音有争议�
 把 regen 提前收稿阈值 sim 0.88→0.95 强制满 5 稿择优。If scenes are regenerated AFTER previews,
 rebuild `audio_master.wav` before final assembly (stale-master bug, 2026-07). 16G Mac 上 F5 连续跑会
 死机重启:必须加 `PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.7`(故意让 MPS 初始化失败回落 CPU — 慢但整机稳,
-不要"修复") + `caffeinate -i nice -n 10`,驱动脚本 `nohup … & disown` 逐场景独立进程,完成标志文件
-监控(启动前先 rm 旧标志防误报);TCC 中途撤销卷授权时改走 Desktop Commander。详见 voice-and-audio.md。
+不要"修复") + `caffeinate -i nice -n 10`,驱动脚本 `nohup … & disown` **分组独立进程 — 每进程 4 段**
+(`for g in "S1,S2,S3,S4" "S5,S6,S7,S8" …; do python regen_tts.py "$g"; done`; regen_tts 本就接受逗号列表
+且 keep-existing 可断点续跑)。**不要逐段一进程**: 模型每次加载 ~1.5min, 24 段 = 24 次加载 ≈35min 纯浪费
+(黄泽林项目实测 111min 总时长里 1/3 是重载, 4段/组 = 6 次加载, 音质零差别; 崩了最多损失 1 组)。
+完成标志文件监控(启动前先 rm 旧标志防误报);TCC 中途撤销卷授权时改走 Desktop Commander。详见 voice-and-audio.md。
 Or the user records one take → `align.py` (see reference).
 
 ### 4. Word-exact captions  → `references/voice-and-audio.md`
@@ -326,6 +351,10 @@ python build/finalize_ending.py "$PROJ/<OUTPUT_NAME>"
 `contact_sheet.py video <out.mp4> 14` → Read it. Confirm chips, captions in sync, card **scores +
 names**, the win/trophy is YOUR player, the poster. For recorded takes, sync-spot-check (reference).
 **Then run the FIVE checks the user keeps catching (see `footage-sourcing.md`):**
+0. **先读 `build/subject_report.json`(reframe v2 自动产出, 零成本)** — YOLO 检测顺手统计每个跟踪
+   窗口的有人帧占比 + 主体高占比; `⚠ 主体存疑` 的窗口(没人/远景/整屏卡片/画中画都会命中 —
+   阈值 85%/0.13 用黄泽林项目用户实抓的 3 处缺陷标定)**必须人工开图确认**, 其余窗口检查 1 和 4
+   的看图量可以大幅收窄到"每场景抽 1 帧"级别。这不取代人眼, 是给人眼排优先级。
 1. **Logo/card scan** — tile a frame from every scene's start + mid + each montage clip start, Read it,
    and replace any window that lands on a Netflix/sponsor/title/date CARD (luma checks miss these).
 2. **Flash-free** — luma-profile each source (`signalstats`) and confirm no window has a near-black or
@@ -394,9 +423,12 @@ harness REDACT —— 这三条确实不通, 但**不要**因此断言"图取不
    posts are gold) / a full-res frame from own footage. Prefer 竖版, high-emotion 夺冠特写 (捧杯/举杯/
    泪目). Identity-verify via the rule-3 ladder. Download: IG scontent → hidden-form POST the signed URL
    to `scripts/cover_bridge.py` (server-side fetch works for IG, unlike oaiusercontent).
-2. **Attach it to the ChatGPT chat** — the ONLY path that works from this harness (file_upload
-   whitelist, CSP fetch/img-to-localhost, synthetic cmd+V, upload_image: ALL blocked): compress to
-   ≤20KB JPEG → base64 (~26K chars) → inject via `javascript_tool` in **3200-char chunks**
+2. **Attach it to the ChatGPT chat — 首选 window.name 接力, 4 步搞定 (2026-08-02 实证, 见 memory
+   `cover-inject-window-name-relay`)**: 图所在目录起 `python3 -m http.server` → 新标签开
+   `http://127.0.0.1:<port>/<img>` 并在页内 fetch→FileReader→`window.name=dataURL` → **同一标签**导航到
+   chatgpt.com(window.name 跨域存活; CSP 挡的是 chatgpt 去 fetch localhost, 不挡 localhost 页自己 fetch)
+   → 读 window.name→atob→File→DataTransfer→对 `#prompt-textarea` 派发 paste 事件。旧法(压缩 ≤20KB →
+   base64 → **3200-char chunks** 分片注入, ~16 次调用)只留作 window.name 被占用时的后备:
    (`window.__P+='...'`, verify cumulative length EVERY call — longer self-authored literals silently
    truncate) → `atob`→`Uint8Array` (check JPEG magic 0xFFD8) → `new File`→`new DataTransfer` →
    dispatch `ClipboardEvent('paste',{clipboardData:dt})` on the focused `#prompt-textarea` → confirm
@@ -460,7 +492,7 @@ knobs + "+" contiguous-slice markers) · `detect_shots.py` · `pick_ends.py` · 
 detection + acronym-completeness + zero intra-line pauses per take, 5 takes, best-of; strips "/" from vo;
 TARGETS-resumable) · `check_tts.py` (transcript-check report) ·
 `check_boundaries.py` (句末该停没停 audit: silencedetect + 边界时间映射 → boundary_audit.json) ·
-`insert_pauses.py` (外科式修复: 在连读时间点插 0.22s 静音, 不重新合成 — F5 重生成会随机吞掉别的句号) ·
+`insert_pauses.py` (外科式修复 v2: RMS 低谷选切点+GATE 拒切字中间+室内底噪+余弦融合, 不重新合成 — F5 重生成会随机吞掉别的句号; v1 硬拼纯零曾把「强」字劈开被用户听出) ·
 `fix_pauses.py`/`fix_pauses_lib.py`/`regen_fix.py` (断句 audit: silencedetect + difflib line-boundary
 mapping → regen mid-line-pause scenes; the step-3 prosody pass) · `preview_parts.py` (per-part
 预览_A….mp4, voice+ambient, `PART_MAP`-aware — the segment-preview checkpoint) · `build_photos.py`
@@ -471,7 +503,7 @@ static `-loop 1`; zoompan always banned) ·
 成片/封面给创作者后台上传控件, CORS+PNA 头齐全 — the publish workflow itself lives in the
 `publish-xhs-douyin` skill) ·
 `render16.py` + `assemble16.py` (16:9 / 1920×1080 variant from the same scenes/timing/captions) ·
-`reframe_scenes.py` (full-bleed: crop landscape→9:16 tracking the player, via video-autoreframe) ·
+`reframe_scenes.py` (full-bleed: crop landscape→9:16 tracking the player, via video-autoreframe; v2 读 FIT_WINDOWS 真跳过 + 产 subject_report.json 主体在场预筛) ·
 `reframe_span.py` (contiguous montage slices: ONE YOLO pass per span split into per-slice keys; skips
 vertical stems + `FIT_WINDOWS`) ·
 `build_ig.py` (native-vertical + `ig_ph_*` clips → `build/reframed/` keys; cover-crop scale so non-9:16
