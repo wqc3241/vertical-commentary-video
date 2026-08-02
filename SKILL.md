@@ -239,9 +239,30 @@ next clip — order clips so the important line (the punchline / the named playe
 so if a minor spill remains.
 
 ### 3. Voiceover → `references/voice-and-audio.md`
-Default = the user's cloned voice via the ANTI-LEAK wrapper (never bare `clone.py scenes` — the default
-reference clip deterministically leaks its tail phrase "尤其是他的叔叔托尼" into clip starts, and the
-padded variant does NOT fix it; 7 recurrences as of 2026-07):
+**Default engine = IndexTTS-2 (2026-08-02 起, 黄泽林 bake-off 用户拍板"很好"):** 同参考同稿盲听
+用户判"更清晰"; 句末连读 9 vs F5 13(同口径); "A、T、P"逐字母**单稿全对**(F5 十稿全废改词);
+全片 ~35min vs F5 111min。安装家在 `/Volumes/Storage/indextts2/`(repo+checkpoints+venv, ~12G;
+重装: git clone index-tts/index-tts → uv sync → hf download IndexTeam/IndexTTS-2 --local-dir checkpoints)。
+```bash
+# 分组独立进程驱动(6段/组), nohup&disown 脱离会话; 16G Mac 一律 CPU(见下)
+for g in "S1,S2,S3,S4,S5,S6" "S7,S8,S9,S10,S11,S12" ...; do
+  caffeinate -i nice -n 15 /Volumes/Storage/indextts2/.venv/bin/python \
+     "$PROJ/build/regen_tts_itts.py" "$g"      # -> audio/<id>.wav + durations.json (与F5同接口)
+done
+```
+引擎内建(每条都是实战换来的, 别关): **逐句合成**(。？！处切句分开合成+0.30s室内底噪拼接 —
+两代引擎都吞句号, "二百五十。八强"读成"258"是用户耳朵抓的, 逐句化后该类整体消失) ·
+**语速 atempo 0.93**(原生偏快, 用户选定 F5 感觉; env SPEECH_TEMPO 可调) ·
+**拼音硬纠正**(难字在 scenes.py 加 `PINYIN={"昺":"BING3"}`, 行内大写拼音+声调数字, 合法音节见
+checkpoints/pinyin.vocab; 前后鼻音如 林LIN2 标了也可能仍偏 — 标注后交用户终审, 别空耗稿数) ·
+**whisper 门**(相似度≥0.80 + 幻觉插入 + 缩写逐字母; ⚠ **数字紧挨句号的 digit-diff 不是假警报** —
+"delete[十][百]"这种就是 258 类连读的证据, 2026-08-02 被当归一化误报放过、用户耳朵抓回)。
+**16G Mac 内存规矩: 一律 device=cpu** — MPS 有泄漏, 每进程只能出 1 段就顶到水位(0.5/0.7 都试过);
+CPU 50-80s/段 RSS≈2G 整机无感。首次失控裸跑曾把系统挤崩 — 任何新引擎上线前先定内存上限。
+
+**F5 后备通道**(用户点名要旧音色/对比时): the ANTI-LEAK wrapper (never bare `clone.py scenes` — the
+default reference clip deterministically leaks its tail phrase "尤其是他的叔叔托尼" into clip starts,
+and the padded variant does NOT fix it; 7 recurrences as of 2026-07):
 ```bash
 VOICE_SPEED=0.85 /Volumes/Storage/voice-clone/venv/bin/python \
    "$PROJ/build/regen_tts.py"     # tennis_backup ref + per-clip whisper verify + retry<=4 -> audio/<id>.wav + durations.json
@@ -488,7 +509,8 @@ knobs + "+" contiguous-slice markers) · `detect_shots.py` · `pick_ends.py` · 
 `shotsheet.py` · `pick_clean.py` (flash-free window finder from `/tmp/lum_*.txt` signalstats profiles) ·
 `assemble_ambient.py` (FINAL assembler: voice + each clip's real audio — final gain 0.15, rule 10; honors
 `MUTE_AMBIENT`; silent sources → auto-silence) · `finalize_ending.py` (LAST step, rule 11: append
-`assets/ending.mov` + re-encode 1080p60; auto 9:16/16:9) · `regen_tts.py` (QUADRUPLE-GATE cloned TTS — the default voice step: anti-leak probe + junk-insert
+`assets/ending.mov` + re-encode 1080p60; auto 9:16/16:9) · `regen_tts_itts.py` (**默认配音引擎** IndexTTS-2: 逐句合成+室内底噪拼接+拼音纠正+whisper门+atempo0.93, CPU-only, 输出与F5同接口) ·
+`regen_tts.py` (F5 后备: QUADRUPLE-GATE cloned TTS: anti-leak probe + junk-insert
 detection + acronym-completeness + zero intra-line pauses per take, 5 takes, best-of; strips "/" from vo;
 TARGETS-resumable) · `check_tts.py` (transcript-check report) ·
 `check_boundaries.py` (句末该停没停 audit: silencedetect + 边界时间映射 → boundary_audit.json) ·
