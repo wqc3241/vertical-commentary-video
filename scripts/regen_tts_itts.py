@@ -21,6 +21,9 @@ bake-off 实测(同参考同稿盲听, 用户判"更清晰"):
 4. **语速** — 原生偏快, 默认 atempo=SPEECH_TEMPO(0.93, 用户选定的 F5 感觉); scenes.py 可覆盖.
 5. **whisper 验证门** (F5 四重门裁剪版: 无参考泄漏问题, 保留 相似度/幻觉插入/缩写逐字母):
    假警报照旧=繁体/同音/数字归一 — 但 **数字紧挨句号的 digit-diff 不是假警报**(258 教训).
+6. **相似度在拼音平面比对** (2026-08-03 伊埃拉实战加): 人名密集的稿子(伊埃拉/佩古拉/斯瓦泰克)
+   whisper 同音漂移(强→墙/坂→阪/贯→关)会把汉字 sim 压穿 0.80, 每场白烧满稿. lazy_pinyin
+   无声调折叠后同音=相同, 一稿直过. 幻觉插入检测仍在汉字平面(不受影响).
 """
 import os, sys, json, re, subprocess, tempfile, shutil, difflib, wave, time
 import numpy as np
@@ -121,10 +124,16 @@ def whisper_text(wav):
     shutil.rmtree(tmp, ignore_errors=True)
     return out
 
+try:
+    from pypinyin import lazy_pinyin
+    _fold = lambda s: "".join(lazy_pinyin(s))
+except ImportError:                      # 缺包时退回汉字平面 (人名多的稿子会多烧稿, 不致错)
+    _fold = lambda s: s
+
 def gates(heard, want_vo):
-    """返回 (ok, sim, problems). want_vo=已去斜杠未注拼音的原念白."""
+    """返回 (ok, sim, problems). want_vo=已去斜杠未注拼音的原念白. sim在拼音平面(要点6)."""
     h, w = clean(d2c(heard)), clean(d2c(want_vo))
-    sim = difflib.SequenceMatcher(None, w, h).ratio()
+    sim = difflib.SequenceMatcher(None, _fold(w), _fold(h)).ratio()
     probs = []
     # 幻觉插入: >=4 连续汉字的纯插入
     for op, i1, i2, j1, j2 in difflib.SequenceMatcher(None, w, h).get_opcodes():
