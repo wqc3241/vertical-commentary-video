@@ -19,6 +19,10 @@ import os, sys, json, subprocess, tempfile
 _CAND = [os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "ending.mov"),
          os.path.expanduser("~/.claude/skills/vertical-commentary-video/assets/ending.mov")]
 ENDING = next((p for p in _CAND if os.path.exists(p)), _CAND[-1])
+# 片尾快速口播 (user rule 2026-08-03: "关注我，了解更多网球故事，网球知识" 以最快速度).
+# 资产存在则自动混进片尾段 (卡片自带音轨压 0.5 让语音清晰); 不存在则行为与旧版完全一致.
+ENDVOICE = next((p for p in (c.replace("ending.mov", "ending_voice.wav") for c in _CAND)
+                 if os.path.exists(p)), None)
 
 def probe(p):
     j = json.loads(subprocess.check_output(["ffprobe","-v","error","-show_entries",
@@ -30,6 +34,16 @@ def probe(p):
 def enc(src, vf, out):
     subprocess.run(["ffmpeg","-y","-loglevel","error","-i",src,
         "-vf",vf,"-c:v","libx264","-preset","medium","-crf","17",
+        "-c:a","aac","-b:a","192k","-ar","48000","-ac","2",out], check=True)
+
+def enc_ending(src, vf, out):
+    if not ENDVOICE:
+        return enc(src, vf, out)
+    subprocess.run(["ffmpeg","-y","-loglevel","error","-i",src,"-i",ENDVOICE,
+        "-filter_complex",
+        f"[0:v]{vf}[v];[0:a]volume=0.5[bg];[1:a]apad[vo];"
+        f"[bg][vo]amix=inputs=2:duration=first:normalize=0[a]",
+        "-map","[v]","-map","[a]","-c:v","libx264","-preset","medium","-crf","17",
         "-c:a","aac","-b:a","192k","-ar","48000","-ac","2",out], check=True)
 
 def main():
@@ -47,7 +61,7 @@ def main():
         evf = "scale=1080:1920:flags=lanczos,fps=60,format=yuv420p"
     td = tempfile.mkdtemp(prefix="fin_")
     m, e, lst = os.path.join(td,"m.mp4"), os.path.join(td,"e.mp4"), os.path.join(td,"l.txt")
-    enc(src, mvf, m); enc(ENDING, evf, e)
+    enc(src, mvf, m); enc_ending(ENDING, evf, e)
     open(lst,"w").write(f"file '{m}'\nfile '{e}'\n")
     fd, tmp = tempfile.mkstemp(suffix=".mp4", dir=os.path.dirname(os.path.abspath(out)) or "."); os.close(fd)
     subprocess.run(["ffmpeg","-y","-loglevel","error","-f","concat","-safe","0","-i",lst,
