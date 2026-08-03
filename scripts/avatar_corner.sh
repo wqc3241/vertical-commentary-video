@@ -25,7 +25,8 @@ echo "=== avatar V=${V}s seg=${SEGDUR}s off=${OFF} $(date +%H:%M:%S) ==="
 # 1. 模板段 (720x1280) — 音频更长时给全段, 引擎内部循环
 ffmpeg -v error -ss "$OFF" -t "$SEGDUR" -i "$AS/template2_720.mp4" \
   -c:v libx264 -crf 18 -preset fast -an -y "$TMP/seg.mp4"
-# 2. 对嘴 (~8-9min/分钟音频, CPU)
+# 2. 对嘴 (~8-9min/分钟音频, CPU) — 必须 cd 进引擎目录: 人脸检测模型是相对路径 ./insightface_func/models
+cd "$W"
 "$W/venv/bin/python" -W ignore "$W/inference_onnxModel.py" \
   --checkpoint_path "$W/checkpoints/wav2lip_256.onnx" \
   --face "$TMP/seg.mp4" --audio "$AM" --outfile "$TMP/avraw.mp4" --pads 0 10 0 0
