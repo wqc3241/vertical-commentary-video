@@ -1,0 +1,46 @@
+#!/bin/bash
+# 右下角口播数字人 (wav2lip-onnx-256) — 2026-08-03 从选拍指南会话的已验证管线移植。
+# 用法: bash build/avatar_corner.sh <成片.mp4> <voice_master.wav> [模板偏移秒=0] [输出.mp4]
+#   成片 = finalize_ending 之后的最终交付件 (含结尾卡)。
+#   voice_master = build/audio_master.wav (纯口播 concat) — 数字人嘴型对口播, 不对混音。
+#   V = voice_master 时长 = 结尾卡开始时刻; 数字人只出现在 0..V, 结尾卡无头像。
+# 引擎/资产 (耐久位置):
+#   引擎  /Volumes/Storage/wav2lip-onnx-256 (venv + wav2lip_256.onnx + matte_bg.py/RVM)
+#   模板  /Volumes/Storage/avatar-template/assets/template2_720.mp4 (126.5s, 首尾各5s安静=循环接缝设计)
+#   遮罩  同目录 mask280.png (圆) + ring292.png (描边环)
+# 音频比模板长时引擎自动循环帧 (inference_onnxModel.py: i%len(frames)) — 不要自己做倒放回文
+#   (ffmpeg reverse 会把整段吃进内存, 16G 机器必崩; 内置循环零内存成本, 接缝落在设计好的安静段)。
+# 长片 (>2min) 用偏移 0 吃满整条模板; 短片系列各集错开偏移 (5/15/25/35/45) 避免头像动作雷同。
+set -eu
+BASE="$1"; AM="$2"; OFF="${3:-0}"; OUT="${4:-${BASE%.mp4}_数字人.mp4}"
+W=/Volumes/Storage/wav2lip-onnx-256
+AS=/Volumes/Storage/avatar-template/assets
+TMP="$(cd "$(dirname "$BASE")" && pwd)/build/avatar_tmp"; mkdir -p "$TMP"
+
+V=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$AM")
+TPLD=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$AS/template2_720.mp4")
+SEGDUR=$(python3 -c "print(min($V+1.0, $TPLD-$OFF))")
+echo "=== avatar V=${V}s seg=${SEGDUR}s off=${OFF} $(date +%H:%M:%S) ==="
+
+# 1. 模板段 (720x1280) — 音频更长时给全段, 引擎内部循环
+ffmpeg -v error -ss "$OFF" -t "$SEGDUR" -i "$AS/template2_720.mp4" \
+  -c:v libx264 -crf 18 -preset fast -an -y "$TMP/seg.mp4"
+# 2. 对嘴 (~8-9min/分钟音频, CPU)
+"$W/venv/bin/python" -W ignore "$W/inference_onnxModel.py" \
+  --checkpoint_path "$W/checkpoints/wav2lip_256.onnx" \
+  --face "$TMP/seg.mp4" --audio "$AM" --outfile "$TMP/avraw.mp4" --pads 0 10 0 0
+# 3. 裁成 720x720 方形 (胸上构图, y=193 对准脸部)
+ffmpeg -v error -i "$TMP/avraw.mp4" -vf "crop=720:720:0:193" -an \
+  -c:v libx264 -crf 16 -preset fast -y "$TMP/avsq.mp4"
+# 4. RVM 抠像 → 浅蓝底 BDD8EE
+"$W/venv/bin/python" "$W/matte_bg.py" "$TMP/avsq.mp4" "$TMP/avblue.mp4" BDD8EE
+# 5. 合成: 280px 圆 + 描边环, 右下角 (772,1616)/(766,1610); partA=0..V 带头像, partB=结尾卡原样
+ffmpeg -v error -t "$V" -i "$BASE" -i "$TMP/avblue.mp4" \
+  -loop 1 -i "$AS/mask280.png" -loop 1 -i "$AS/ring292.png" \
+  -filter_complex "[1:v]scale=280:280[av];[av][2:v]alphamerge[avc];[0:v][avc]overlay=772:1616[t1];[t1][3:v]overlay=766:1610[out]" \
+  -map "[out]" -an -c:v libx264 -crf 18 -preset medium -r 60 -y "$TMP/partA.mp4"
+ffmpeg -v error -ss "$V" -i "$BASE" -an -c:v libx264 -crf 18 -preset medium -r 60 -y "$TMP/partB.mp4"
+printf "file '%s'\nfile '%s'\n" "$TMP/partA.mp4" "$TMP/partB.mp4" > "$TMP/cl.txt"
+ffmpeg -v error -f concat -safe 0 -i "$TMP/cl.txt" -i "$BASE" \
+  -map 0:v -map 1:a -c:v copy -c:a copy -movflags +faststart -y "$OUT"
+echo "=== DONE -> $OUT $(date +%H:%M:%S) ==="

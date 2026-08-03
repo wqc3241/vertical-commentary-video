@@ -362,7 +362,14 @@ python build/assemble_ambient.py build/audio_master.wav 0.15    # TTS voice mast
 # (voice-only render.py assemble / assemble-voice = drafts only, not the deliverable)
 # 6d. ALWAYS finish with the branded ending + 1080p60 re-encode (rule 11):
 python build/finalize_ending.py "$PROJ/<OUTPUT_NAME>"
+# 6e. 右下角口播数字人 (user standing rule 2026-08-03, 伊埃拉起默认加) — wav2lip-onnx-256:
+bash build/avatar_corner.sh "$PROJ/<OUTPUT_NAME>" build/audio_master.wav 0
 ```
+**数字人 (6e)**: 用户真人模板 + 克隆声口播 → 对嘴 → 280px 圆头像叠右下角 (捧场位不压字幕:
+字幕带 y≲1450, 圆圈 y1610+)。脚本自含全部路径/参数注释 — 引擎在 /Volumes/Storage/wav2lip-onnx-256,
+模板+遮罩在 /Volumes/Storage/avatar-template/assets (模板 126.5s, 音频更长时引擎自动循环帧,
+**不要自己做倒放回文** — ffmpeg reverse 整段进内存会崩 16G 机器)。耗时 ~8-9min/分钟口播 (CPU)。
+数字人只覆盖口播段 0..V, 结尾卡保持无头像。头像盖在战绩卡上是正常效果, 预览时照常检查。
 **16:9 landscape variant** (the user often wants this too): `render16.py` reuses the SAME `scenes.py`,
 `durations.json` and `captions.json` and renders 1920×1080 (footage fills the frame, cards re-laid-out);
 `assemble16.py` muxes the same voice + ambient. So one project yields both 9:16 and 16:9 — run
