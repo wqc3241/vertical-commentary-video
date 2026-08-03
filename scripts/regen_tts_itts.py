@@ -18,7 +18,7 @@ bake-off 实测(同参考同稿盲听, 用户判"更清晰"):
 3. **拼音硬纠正** — 难字在 scenes.py 加 `PINYIN = {"昺": "BING3"}`, 合成文本按表替换
    (字幕不动). 语法=行内大写拼音+声调数字, 合法音节见 indextts2/checkpoints/pinyin.vocab.
    前后鼻音(林LIN2/玲)这类标了也可能仍偏 — 标注后让用户终审, 不要空耗稿数.
-4. **语速** — 原生偏快, 默认 atempo=SPEECH_TEMPO(0.93, 用户选定的 F5 感觉); scenes.py 可覆盖.
+4. **语速** — 原生偏快, 默认 atempo=SPEECH_TEMPO(0.96; 0.93曾被用户嫌慢, 2026-08-03校准); scenes.py 可覆盖.
 5. **whisper 验证门** (F5 四重门裁剪版: 无参考泄漏问题, 保留 相似度/幻觉插入/缩写逐字母):
    假警报照旧=繁体/同音/数字归一 — 但 **数字紧挨句号的 digit-diff 不是假警报**(258 教训).
 6. **相似度在拼音平面比对** (2026-08-03 伊埃拉实战加): 人名密集的稿子(伊埃拉/佩古拉/斯瓦泰克)
@@ -40,9 +40,9 @@ except Exception:
 ITTS_HOME = os.environ.get("ITTS_HOME", "/Volumes/Storage/indextts2")
 VOICE_REF = os.environ.get("VOICE_REF", "/Volumes/Storage/voice-clone/voice_ref_tennis_backup.wav")
 WHISPER = os.environ.get("WHISPER_BIN", "whisper")   # Homebrew CLI, 与 F5 管线同款
-SPEECH_TEMPO = float(os.environ.get("SPEECH_TEMPO", "0.93"))
+SPEECH_TEMPO = float(os.environ.get("SPEECH_TEMPO", "0.96"))
 AUD = os.path.join(BUILD, "audio"); os.makedirs(AUD, exist_ok=True)
-PAUSE = 0.30          # 句间停顿
+PAUSE = 0.20          # 句间停顿 (2026-08-03 伊埃拉预览用户校准: 0.30听感太长)
 FADE = 0.010
 MAX_TRIES = 3
 SENT_SPLIT = re.compile(r"([。？！])")
