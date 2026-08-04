@@ -179,9 +179,9 @@ cp ~/.claude/skills/vertical-commentary-video/scripts/*.py ~/.claude/skills/vert
 - **MANDATORY — generate the 解说词 in the USER'S OWN ChatGPT via their browser; never just write
   it yourself.** The user has had to correct this repeatedly — skipping it is the #1 process
   mistake on this skill. Follow `~/.claude/skills/xhs-personal-vlog/references/copy-generation.md`:
-  Claude-in-Chrome → **直接导航到项目主页
-  `https://chatgpt.com/g/g-p-68ba567096248191b368b84f132f3361/project`**(小红书文案生成; ID 固定,
-  别再"开首页→截图→翻侧栏→查 DOM 拿 href" — 那套多花两张截图和三四次调用) → send ONE single-line
+  Claude-in-Chrome → **直接导航到用户自己的文案项目主页
+  `$GPT_PROJECT_URL`**(在 personal.env 配置一次, 形如 https://chatgpt.com/g/g-p-<你的项目ID>/project;
+  ID 固定, 别再"开首页→截图→翻侧栏→查 DOM 拿 href" — 那套多花两张截图和三四次调用) → send ONE single-line
   prompt (newlines auto-send!) that includes the topic, the VERIFIED facts, spoken length, ≤20-char
   sentences, numbered scenes, and asks for 标题/正文/tags too — **and REQUIRE a fact-check first**:
   prompt 里明确写「先逐条核对我给出的事实清单再写稿;只使用清单内的事实,任何清单外或不确定的
