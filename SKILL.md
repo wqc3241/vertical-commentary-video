@@ -153,7 +153,7 @@ clip, fix one line — doesn't need a fresh gate; a new script or a new footage 
 ```bash
 PROJ="/Volumes/Storage/Documents/<name>"
 mkdir -p "$PROJ/source" "$PROJ/build"
-cp ~/.claude/skills/vertical-commentary-video/scripts/*.py "$PROJ/build/"
+cp ~/.claude/skills/vertical-commentary-video/scripts/*.py ~/.claude/skills/vertical-commentary-video/scripts/*.sh "$PROJ/build/"
 ```
 
 ### 1. Lock the script (TEXT FIRST — get sign-off before building visuals)
@@ -239,26 +239,31 @@ next clip — order clips so the important line (the punchline / the named playe
 so if a minor spill remains.
 
 ### 3. Voiceover → `references/voice-and-audio.md`
-**Default engine = IndexTTS-2 (2026-08-02 起, 黄泽林 bake-off 用户拍板"很好"):** 同参考同稿盲听
-用户判"更清晰"; 句末连读 9 vs F5 13(同口径); "A、T、P"逐字母**单稿全对**(F5 十稿全废改词);
-全片 ~35min vs F5 111min。安装家在 `/Volumes/Storage/indextts2/`(repo+checkpoints+venv, ~12G;
+**Default engine = IndexTTS-2 情感整段模式 (2026-08-04 起, 伊埃拉情感 bake-off 用户拍板):**
+2026-08-02 黄泽林 bake-off 定引擎(更清晰/字母单稿全对/35min vs F5 111min), 2026-08-04 情感升级 —
+用户反馈"清晰但缺情感、F5 更贴本人", 根因=只喂音色参考、`emo_audio_prompt` 情感槽位空置吃了
+内置中性向量。现默认: **整段场景文本一次合成 + 用户自己的富情感录音当情感参考 + α1.0 + 原生语速**,
+模型自己安排句间呼吸(0.2-0.46s 自然变化), 零拼接零裁剪(逐句拼接的句界刀口在情感模式下修不干净,
+半截音三轮实证)。安装家 `/Volumes/Storage/indextts2/`(repo+checkpoints+venv, ~12G;
 重装: git clone index-tts/index-tts → uv sync → hf download IndexTeam/IndexTTS-2 --local-dir checkpoints)。
 ```bash
-# 分组独立进程驱动(6段/组), nohup&disown 脱离会话; 16G Mac 一律 CPU(见下)
-for g in "S1,S2,S3,S4,S5,S6" "S7,S8,S9,S10,S11,S12" ...; do
-  caffeinate -i nice -n 15 /Volumes/Storage/indextts2/.venv/bin/python \
-     "$PROJ/build/regen_tts_itts.py" "$g"      # -> audio/<id>.wav + durations.json (与F5同接口)
-done
+# 单进程即可(CPU RSS≈2G); nohup&disown 脱离会话; 16G Mac 一律 CPU(见下)
+caffeinate -i nice -n 15 /Volumes/Storage/indextts2/.venv/bin/python \
+   "$PROJ/build/regen_tts_itts.py"           # -> audio/<id>.wav + durations.json (与F5同接口)
+# 旋钮(env): EMO_REF=情感参考wav  EMO_ALPHA=1.0  EMO_MODE=0(退回逐句拼接后备)  SPEECH_TEMPO=1.0
 ```
-引擎内建(每条都是实战换来的, 别关): **逐句合成**(。？！处切句分开合成+0.30s室内底噪拼接 —
-两代引擎都吞句号, "二百五十。八强"读成"258"是用户耳朵抓的, 逐句化后该类整体消失) ·
-**语速 atempo 0.93**(原生偏快, 用户选定 F5 感觉; env SPEECH_TEMPO 可调) ·
+引擎内建(每条都是实战换来的, 别关):
+**数字。数字 邻接自动改写为 数字，数字**(258 七个月悬案 2026-08-04 定案: TextNormalizer 把中文
+句号规整成英文句点, "二百五十.八强"被当**小数点**连读成 258, 整段模式 ~50% 概率复发;
+逗号规整成"," 不并数, 6/6 全过 — prep_vo() 只动这类危险邻接, 其余句号原样, 字幕不受影响) ·
+**digitmerge 专项门**(对每个危险邻接, 听写里查"左尾2字+右首字"连体如"五十八" — 命中即废稿重掷) ·
 **拼音硬纠正**(难字在 scenes.py 加 `PINYIN={"昺":"BING3"}`, 行内大写拼音+声调数字, 合法音节见
 checkpoints/pinyin.vocab; 前后鼻音如 林LIN2 标了也可能仍偏 — 标注后交用户终审, 别空耗稿数) ·
-**whisper 门**(相似度≥0.80 + 幻觉插入 + 缩写逐字母; ⚠ **数字紧挨句号的 digit-diff 不是假警报** —
-"delete[十][百]"这种就是 258 类连读的证据, 2026-08-02 被当归一化误报放过、用户耳朵抓回)。
+**whisper 门**(拼音平面相似度≥0.80 + 幻觉插入 + 缩写逐字母)。
 **16G Mac 内存规矩: 一律 device=cpu** — MPS 有泄漏, 每进程只能出 1 段就顶到水位(0.5/0.7 都试过);
-CPU 50-80s/段 RSS≈2G 整机无感。首次失控裸跑曾把系统挤崩 — 任何新引擎上线前先定内存上限。
+CPU 整段~35-60s/场 RSS≈2G 整机无感。首次失控裸跑曾把系统挤崩 — 任何新引擎上线前先定内存上限。
+**情感参考升级路径**: 现用跑步 vlog 参考(音高起伏0.41 最活); 用户补录 20-30s"给朋友讲球"状态
+的自然语音后换 EMO_REF, 天花板更高。高潮/温情场可 per-scene 换不同情感参考(scenes.py 加字段, 未接线)。
 
 **F5 后备通道**(用户点名要旧音色/对比时): the ANTI-LEAK wrapper (never bare `clone.py scenes` — the
 default reference clip deterministically leaks its tail phrase "尤其是他的叔叔托尼" into clip starts,
@@ -363,13 +368,24 @@ python build/assemble_ambient.py build/audio_master.wav 0.15    # TTS voice mast
 # 6d. ALWAYS finish with the branded ending + 1080p60 re-encode (rule 11):
 python build/finalize_ending.py "$PROJ/<OUTPUT_NAME>"
 # 6e. 右下角口播数字人 (user standing rule 2026-08-03, 伊埃拉起默认加) — wav2lip-onnx-256:
-bash build/avatar_corner.sh "$PROJ/<OUTPUT_NAME>" build/audio_master.wav 0
+caffeinate -i nice -n 15 bash build/avatar_corner.sh "$PROJ/<OUTPUT_NAME>" build/audio_master.wav 0
 ```
-**数字人 (6e)**: 用户真人模板 + 克隆声口播 → 对嘴 → 280px 圆头像叠右下角 (捧场位不压字幕:
-字幕带 y≲1450, 圆圈 y1610+)。脚本自含全部路径/参数注释 — 引擎在 /Volumes/Storage/wav2lip-onnx-256,
+**数字人 (6e)**: 用户真人模板 + 克隆声口播 → 对嘴 → **186px** 圆头像叠右下角 (834,1634 —
+2026-08-03 用户按手机屏幕圆角/进度条校准, **勿改回旧的 280px/(772,1616)**; 不压字幕带)。
+脚本自含全部路径/参数注释 — 引擎在 /Volumes/Storage/wav2lip-onnx-256,
 模板+遮罩在 /Volumes/Storage/avatar-template/assets (模板 126.5s, 音频更长时引擎自动循环帧,
-**不要自己做倒放回文** — ffmpeg reverse 整段进内存会崩 16G 机器)。耗时 ~8-9min/分钟口播 (CPU)。
-数字人只覆盖口播段 0..V, 结尾卡保持无头像。头像盖在战绩卡上是正常效果, 预览时照常检查。
+**不要自己做倒放回文** — ffmpeg reverse 整段进内存会崩 16G 机器)。耗时 ~8-9min/分钟口播 (CPU),
+必须 caffeinate 包着跑防睡眠断工。数字人只覆盖口播段 0..V, 结尾卡保持无头像。头像盖在战绩卡上
+是正常效果, 预览时照常检查。
+**⚠ 音轨空洞自检 (2026-08-04 选拍指南 7 集全部中招后立的规矩)**: avatar_corner 的音轨是从成片
+`-c:a copy` 继承的, 而最终合装链路可能产出"稀疏时间戳"音轨 (音频包在场景边界附近整段缺失,
+每集缺 3-18s, 听感=中间突然没声; 分段预览是好的所以审片听不出)。**交付前必查**:
+`ffprobe -v error -select_streams a:0 -show_entries packet=dts_time -of csv=p=0 <成片> | \
+  python3 -c "import sys; ts=[float(x.strip().rstrip(',')) for x in sys.stdin if x.strip()]; \
+  g=[1 for i in range(len(ts)-1) if ts[i+1]-ts[i]>0.05]; print('holes:',len(g),'span:',round(ts[-1]-ts[0],1),'content:',round(len(ts)*1024/48000,1))"`
+holes>0 或 span≠content → 用 build/audio_master.wav + build/ambient_master.wav 按 assemble_ambient
+配方 (loudnorm 人声 + volume 0.15 + afade + amix normalize=0) 重混整轨, 尾段用 assets/ending.mov
+原声, 再 remux 换轨 (video -c copy)。注意 csv 尾逗号和 AAC 首包负 dts (priming) 是正常现象。
 **16:9 landscape variant** (the user often wants this too): `render16.py` reuses the SAME `scenes.py`,
 `durations.json` and `captions.json` and renders 1920×1080 (footage fills the frame, cards re-laid-out);
 `assemble16.py` muxes the same voice + ambient. So one project yields both 9:16 and 16:9 — run
@@ -392,6 +408,8 @@ names**, the win/trophy is YOUR player, the poster. For recorded takes, sync-spo
    walk, celebration): full-res frames at BOTH ends of the window; confirm subject via the rule-3
    escalation ladder (brand logo > kit construction > scorebug), not colour alone. A window can start
    on your player and end on the opponent after an in-window camera cut — probe the last second.
+5b. **数字人版三帧抽查** (有 6e 时) — 中段一帧 (圆圈在+嘴型自然)、口播结束前 1s 一帧 (圆圈仍在)、
+   结尾卡一帧 (圆圈已消失); 数字人版时长必须 = 原成片时长 (±1帧)。加上上面的音轨空洞自检一起跑。
 5. **Re-scan after EVERY duration change** — re-recording even ONE scene's voice changes all montage
    slice lengths and shifts every window: after any re-assembly, re-extract frames and repeat checks
    1+4 on the shifted windows. A full-screen "COACH" title card drifted into frame TWICE this way
@@ -516,7 +534,7 @@ knobs + "+" contiguous-slice markers) · `detect_shots.py` · `pick_ends.py` · 
 `shotsheet.py` · `pick_clean.py` (flash-free window finder from `/tmp/lum_*.txt` signalstats profiles) ·
 `assemble_ambient.py` (FINAL assembler: voice + each clip's real audio — final gain 0.15, rule 10; honors
 `MUTE_AMBIENT`; silent sources → auto-silence) · `finalize_ending.py` (LAST step, rule 11: append
-`assets/ending.mov` + re-encode 1080p60; auto 9:16/16:9) · `regen_tts_itts.py` (**默认配音引擎** IndexTTS-2: 逐句合成+室内底噪拼接+拼音纠正+whisper门+atempo0.93, CPU-only, 输出与F5同接口) ·
+`assets/ending.mov` + re-encode 1080p60; auto 9:16/16:9) · `regen_tts_itts.py` (**默认配音引擎** IndexTTS-2 情感整段模式: emo参考+整段直出+数字邻接逗号改写+digitmerge门+拼音纠正+whisper拼音平面门, CPU-only, 原生语速, 输出与F5同接口; EMO_MODE=0 退逐句后备) ·
 `regen_tts.py` (F5 后备: QUADRUPLE-GATE cloned TTS: anti-leak probe + junk-insert
 detection + acronym-completeness + zero intra-line pauses per take, 5 takes, best-of; strips "/" from vo;
 TARGETS-resumable) · `check_tts.py` (transcript-check report) ·
