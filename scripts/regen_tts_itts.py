@@ -10,9 +10,8 @@ bake-off 实测(同参考同稿盲听, 用户判"更清晰"):
 => caption_times / render / preview / assemble 全部无改动直接用.
 
 设计要点(每条都是实战换来的):
-1. **逐句合成 + 程序化句间停顿(默认, 不可关)** — 两代引擎都会吞 。？！ 停顿
-   (F5 13处 / ITTS 9处, "二百五十。八强"被连成"258"是用户耳朵抓的). 句子分开合成、
-   句间插 0.30s 本段室内底噪 + 10ms 余弦融合, 该类缺陷整类消失.
+1. **架构史**: 中性模式时代默认逐句合成+程序拼停顿(治吞句号); 2026-08-04 起情感整段直出
+   成为默认(见要点6), 逐句退为 EMO_MODE=0 后备。
 2. **16G Mac 一律 CPU** — MPS 有泄漏, 每进程只能出 1 段就顶到水位; CPU 50-80s/段
    RSS~2G 整机无感. 驱动照旧分组独立进程(4-6段/组)+nohup&disown.
 3. **拼音硬纠正** — 难字在 scenes.py 加 `PINYIN = {"昺": "BING3"}`, 合成文本按表替换
@@ -21,10 +20,21 @@ bake-off 实测(同参考同稿盲听, 用户判"更清晰"):
 4. **语速** — 原生偏快, 默认 atempo=SPEECH_TEMPO(0.96; 0.93曾被用户嫌慢, 2026-08-03校准); scenes.py 可覆盖.
 5. **whisper 验证门** (F5 四重门裁剪版: 无参考泄漏问题, 保留 相似度/幻觉插入/缩写逐字母):
    假警报照旧=繁体/同音/数字归一 — 但 **数字紧挨句号的 digit-diff 不是假警报**(258 教训).
-6. **相似度在拼音平面比对** (2026-08-03 伊埃拉实战加): 人名密集的稿子(伊埃拉/佩古拉/斯瓦泰克)
+6. **情感模式(2026-08-04 默认, 伊埃拉情感bake-off后)**: 整段文本一次合成 + `emo_audio_prompt`
+   情感参考(用户自己的富情感录音, 默认跑步vlog参考) + `emo_alpha=1.0`。中性模式的"清晰但平"
+   = 只喂了音色参考、情感槽位空置吃了内置中性向量。整段直出让模型自己安排句间呼吸
+   (0.2-0.46s 自然变化), **零拼接零裁剪 → 半截音一类问题在原理上不存在**。
+   逐句拼接退为 EMO_MODE=0 的后备(其刀口在情感模式下修不干净, 已三轮实证)。
+7. **数字。数字 邻接必须预改写为 数字，数字** (258 根因终于找到): TextNormalizer 把中文句号
+   规整成英文句点 → "二百五十.八强" 在模型眼里是小数点, 数字串合并读成 258(整段模式下
+   ~50%概率, 3/3 与 1/2 两轮实测)。逗号规整为"," 不会并数, 6/6 全过。prep_vo() 自动改写,
+   仅动这一类危险邻接, 其余句号原样。字幕不受影响。
+8. **数字合并专项门**: 对原文每个 数字。数字 邻接, 在听写文本里查"左尾2字+右首字"连体
+   (如"五十八") — 出现即 digitmerge, 该稿作废重掷。
+9. **相似度在拼音平面比对** (2026-08-03 伊埃拉实战加): 人名密集的稿子(伊埃拉/佩古拉/斯瓦泰克)
    whisper 同音漂移(强→墙/坂→阪/贯→关)会把汉字 sim 压穿 0.80, 每场白烧满稿. lazy_pinyin
    无声调折叠后同音=相同, 一稿直过. 幻觉插入检测仍在汉字平面(不受影响).
-7. **句尾残渣 (vocoder尾巴)**: ITTS 偶发在句尾吐 ~80ms/2kHz 擦音残片("zh"一声), 逐句拼接后
+10. **句尾残渣 (vocoder尾巴)**: ITTS 偶发在句尾吐 ~80ms/2kHz 擦音残片("zh"一声), 逐句拼接后
    以"静音包围的孤岛"形式存在句界处; 停顿越短越显耳. 合成后跑 `clean_clicks.py` 清一遍
    (频谱鉴定+贴身小窗+纯静音源替换, 时长零变化). ⚠替换源必须"窗峰值<0.012"验证过的纯底噪,
    宽窗就近取样会把弱人声克隆进停顿 (whisper 曾听出幽灵音节"阿满贵").
@@ -44,7 +54,11 @@ except Exception:
 ITTS_HOME = os.environ.get("ITTS_HOME", "/Volumes/Storage/indextts2")
 VOICE_REF = os.environ.get("VOICE_REF", "/Volumes/Storage/voice-clone/voice_ref_tennis_backup.wav")
 WHISPER = os.environ.get("WHISPER_BIN", "whisper")   # Homebrew CLI, 与 F5 管线同款
-SPEECH_TEMPO = float(os.environ.get("SPEECH_TEMPO", "0.96"))
+SPEECH_TEMPO = float(os.environ.get("SPEECH_TEMPO", "1.0"))   # 情感模式原生节奏已合适(实测5.2字/s), 不再变速
+EMO_MODE = os.environ.get("EMO_MODE", "1") == "1"
+EMO_REF = os.environ.get("EMO_REF", "/Volumes/Storage/voice-clone/voice_ref_running_backup.wav")
+EMO_ALPHA = float(os.environ.get("EMO_ALPHA", "1.0"))
+DIGIT_ADJ = re.compile(r'([零一二三四五六七八九十百千万0-9])。([零一二三四五六七八九十百千万0-9])')
 AUD = os.path.join(BUILD, "audio"); os.makedirs(AUD, exist_ok=True)
 PAUSE = 0.20          # 句间停顿 (2026-08-03 伊埃拉预览用户校准: 0.30听感太长)
 FADE = 0.010
@@ -68,6 +82,22 @@ def apply_pinyin(text):
     for ch, py in PINYIN.items():
         text = text.replace(ch, py)
     return text
+
+def prep_vo(vo):
+    """数字。数字 -> 数字，数字 (要点7); 仅动危险邻接."""
+    return DIGIT_ADJ.sub(r'\1，\2', vo)
+
+def digit_merge_probs(vo, heard):
+    """要点8: 每个危险邻接查听写里的连体证据."""
+    probs = []
+    h = clean(d2c(heard))
+    for m in DIGIT_ADJ.finditer(vo):
+        i = m.start(1)
+        left = vo[max(0, i-1):i+1]          # 左数字尾2字
+        merged = clean(d2c(left + m.group(2)))
+        if merged and merged in h:
+            probs.append(f"digitmerge[{merged}]")
+    return probs
 
 def sentences(vo):
     parts, buf = [], ""
@@ -177,22 +207,32 @@ for sc in SCENES:
     best = None      # (score_tuple, path, sim, probs)
     for t in range(1, MAX_TRIES + 1):
         tdir = tempfile.mkdtemp(prefix=f"itts_{sid}_")
-        parts = []
-        for i, s in enumerate(sents):
-            p = os.path.join(tdir, f"p{i}.wav")
-            tts.infer(spk_audio_prompt=VOICE_REF, text=apply_pinyin(s),
-                      output_path=p, verbose=False)
-            parts.append(p)
-        joined, sr, ch = join_sentences(parts)
-        rawp = os.path.join(tdir, "joined.wav")
-        wr(rawp, joined, sr, ch)
+        if EMO_MODE:
+            # 整段直出 (要点6): 模型自己安排句间呼吸, 零拼接
+            rawp = os.path.join(tdir, "whole.wav")
+            tts.infer(spk_audio_prompt=VOICE_REF, text=apply_pinyin(prep_vo(vo)),
+                      output_path=rawp, verbose=False,
+                      emo_audio_prompt=EMO_REF, emo_alpha=EMO_ALPHA)
+        else:
+            parts = []
+            for i, s in enumerate(sents):
+                p = os.path.join(tdir, f"p{i}.wav")
+                tts.infer(spk_audio_prompt=VOICE_REF, text=apply_pinyin(s),
+                          output_path=p, verbose=False)
+                parts.append(p)
+            joined, sr, ch = join_sentences(parts)
+            rawp = os.path.join(tdir, "joined.wav")
+            wr(rawp, joined, sr, ch)
         cand = os.path.join(AUD, f"{sid}_try{t}.wav")
+        af = (f"atempo={SPEECH_TEMPO}," if abs(SPEECH_TEMPO-1.0) > 1e-3 else "") + "loudnorm=I=-16:TP=-1.5:LRA=11"
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", rawp,
-                        "-af", f"atempo={SPEECH_TEMPO},loudnorm=I=-16:TP=-1.5:LRA=11",
-                        "-ar", "48000", "-ac", "2", cand], check=True)
+                        "-af", af, "-ar", "48000", "-ac", "2", cand], check=True)
         shutil.rmtree(tdir, ignore_errors=True)
         heard = whisper_text(cand)
         ok, sim, probs = gates(heard, vo)
+        dm = digit_merge_probs(vo, heard)
+        if dm:
+            probs = probs + dm; ok = False
         print(f"{sid} try{t}: sim={sim:.3f} probs={probs}", flush=True)
         score = (len(probs), -sim)
         if best is None or score < best[0]:
