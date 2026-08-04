@@ -35,10 +35,11 @@ ffmpeg -v error -i "$TMP/avraw.mp4" -vf "crop=720:720:0:193" -an \
   -c:v libx264 -crf 16 -preset fast -y "$TMP/avsq.mp4"
 # 4. RVM 抠像 → 浅蓝底 BDD8EE
 "$W/venv/bin/python" "$W/matte_bg.py" "$TMP/avsq.mp4" "$TMP/avblue.mp4" BDD8EE
-# 5. 合成: 280px 圆 + 描边环, 右下角 (772,1616)/(766,1610); partA=0..V 带头像, partB=结尾卡原样
+# 5. 合成: 186px 圆 + 描边环, 右下角 (834,1634)/(829,1629) — 2026-08-03 用户校准:
+#    280px 在 (772,1616) 手机上会被屏幕圆角/进度条卡掉, 缩 1/3 并左移上移
 ffmpeg -v error -t "$V" -i "$BASE" -i "$TMP/avblue.mp4" \
   -loop 1 -i "$AS/mask280.png" -loop 1 -i "$AS/ring292.png" \
-  -filter_complex "[1:v]scale=280:280[av];[av][2:v]alphamerge[avc];[0:v][avc]overlay=772:1616[t1];[t1][3:v]overlay=766:1610[out]" \
+  -filter_complex "[1:v]scale=186:186[av];[2:v]scale=186:186[mk];[av][mk]alphamerge[avc];[0:v][avc]overlay=834:1634[t1];[3:v]scale=196:196[rg];[t1][rg]overlay=829:1629[out]" \
   -map "[out]" -an -t "$V" -c:v libx264 -crf 18 -preset medium -r 60 -y "$TMP/partA.mp4"
 # ⚠ 输出侧 -t 必须有: -loop 1 的 PNG 是无限流, 主输入 EOF 后 framesync 重复末帧, 滤镜图永不终止
 #   (2026-08-03 实测: 只有输入侧 -t 时, 10s 素材跑出 7 分钟+的定格输出, 2h 编了 2GB)
