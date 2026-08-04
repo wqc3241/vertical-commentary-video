@@ -13,8 +13,9 @@
 # 长片 (>2min) 用偏移 0 吃满整条模板; 短片系列各集错开偏移 (5/15/25/35/45) 避免头像动作雷同。
 set -eu
 BASE="$1"; AM="$2"; OFF="${3:-0}"; OUT="${4:-${BASE%.mp4}_数字人.mp4}"
-W=/Volumes/Storage/wav2lip-onnx-256
-AS=/Volumes/Storage/avatar-template/assets
+W="${W2L_HOME:-/Volumes/Storage/wav2lip-onnx-256}"
+AS="${PERSONAL_ASSETS:-/Volumes/Storage/avatar-template/assets}"
+[ -f "$AS/template2_720.mp4" ] || { echo "⚠ 缺数字人模板 $AS/template2_720.mp4 — 个人形象件不随仓库分发, 录制见 docs/ONBOARDING.md 第2步"; exit 2; }
 TMP="$(cd "$(dirname "$BASE")" && pwd)/build/avatar_tmp"; mkdir -p "$TMP"
 
 V=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$AM")

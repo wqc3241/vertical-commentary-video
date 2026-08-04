@@ -1,4 +1,8 @@
-__pycache__/
-*.pyc
-.DS_Store
-*.bak
+# ===== 个人音视频/形象数据: 永不入库 =====
+personal.env
+assets/*.wav
+assets/*.mov
+assets/*.mp4
+assets/*.m4a
+assets/voice_ref*
+*.DS_Store

@@ -112,11 +112,12 @@ Hard-won quality rules — the user cares about these, don't regress them:
    let the real voice breathe underneath.
 11. **Every deliverable ends with the user's branded ending + ships as 1080p 60fps (standing rule
    2026-07-13).** After assemble_ambient/assemble16, ALWAYS run `finalize_ending.py <deliverable>`:
-   appends `assets/ending.mov` (点赞收藏关注 card, native 1080×1920) — kept vertical for 9:16, center-
+   appends the personal ending card `$PERSONAL_ASSETS/ending.mov` (点赞收藏关注, native 1080×1920;
+   个人品牌件不随仓库分发, 见 docs/ONBOARDING.md 第3步; 缺失时自动跳过片尾仅统一1080p60) — kept vertical for 9:16, center-
    cropped (`crop=1080:608:0:738`) for 16:9 — and re-encodes the whole file to 1080p@60fps. Idempotent
    (skips if the `finalized-with-ending` tag is present). Single-pass filter_complex concat dies on this
    Mac's ffmpeg — the script's 3-step method (transcode both parts to identical specs → concat -c copy)
-   is deliberate, don't refactor. If the user hands you a NEW ending clip, replace `assets/ending.mov`.
+   is deliberate, don't refactor. If the user hands you a NEW ending clip, replace `$PERSONAL_ASSETS/ending.mov`.
 12. **Produced IG reels' music is NOT venue sound — mute it.** Ambient under the narration must be REAL
    现场声 (ball strikes / crowd / broadcast); an edited reel's music bed or added SFX is not ("背景音
    不是视频背景音"). List those stems in `scenes.py` `MUTE_AMBIENT = {"ig_milan_champ", …}` — honored by
@@ -148,6 +149,17 @@ clip, fix one line — doesn't need a fresh gate; a new script or a new footage 
    rebuild only the affected part previews (`preview_parts.py 0.30 BCD`), then final-assemble.
 
 ## Workflow (in order)
+
+### -1. 新用户开箱门禁 (仅首次) — 别人复用这条流水线从这里进
+本仓库**零个人数据**: 声音参考/数字人模板/品牌片尾都属于使用者本人, 只存在本机
+(`personal.env` 指定, 已被 .gitignore 挡在库外)。**第一次使用前必须先录自己的三件套**
+(①两段自己的语音: 音色参考+情感参考 ②自己的数字人模板视频 ③可选品牌片尾) —
+完整步骤见 `docs/ONBOARDING.md`, 录制规范见 `docs/数字人模板录制指南.md`。
+```bash
+bash scripts/check_personal_assets.sh   # 全绿才开工; 缺项会指到 ONBOARDING 对应步骤
+```
+⚠ 助手执行铁律: 发现个人资产缺失时, **先带用户完成录制, 再开始做片**; 任何情况下
+不得把 *.wav / *.mov / 模板视频提交进 git (.gitignore 已设防, 不要绕过)。
 
 ### 0. Setup
 ```bash
@@ -384,7 +396,7 @@ caffeinate -i nice -n 15 bash build/avatar_corner.sh "$PROJ/<OUTPUT_NAME>" build
   python3 -c "import sys; ts=[float(x.strip().rstrip(',')) for x in sys.stdin if x.strip()]; \
   g=[1 for i in range(len(ts)-1) if ts[i+1]-ts[i]>0.05]; print('holes:',len(g),'span:',round(ts[-1]-ts[0],1),'content:',round(len(ts)*1024/48000,1))"`
 holes>0 或 span≠content → 用 build/audio_master.wav + build/ambient_master.wav 按 assemble_ambient
-配方 (loudnorm 人声 + volume 0.15 + afade + amix normalize=0) 重混整轨, 尾段用 assets/ending.mov
+配方 (loudnorm 人声 + volume 0.15 + afade + amix normalize=0) 重混整轨, 尾段用 $PERSONAL_ASSETS/ending.mov
 原声, 再 remux 换轨 (video -c copy)。注意 csv 尾逗号和 AAC 首包负 dts (priming) 是正常现象。
 **16:9 landscape variant** (the user often wants this too): `render16.py` reuses the SAME `scenes.py`,
 `durations.json` and `captions.json` and renders 1920×1080 (footage fills the frame, cards re-laid-out);
@@ -534,7 +546,7 @@ knobs + "+" contiguous-slice markers) · `detect_shots.py` · `pick_ends.py` · 
 `shotsheet.py` · `pick_clean.py` (flash-free window finder from `/tmp/lum_*.txt` signalstats profiles) ·
 `assemble_ambient.py` (FINAL assembler: voice + each clip's real audio — final gain 0.15, rule 10; honors
 `MUTE_AMBIENT`; silent sources → auto-silence) · `finalize_ending.py` (LAST step, rule 11: append
-`assets/ending.mov` + re-encode 1080p60; auto 9:16/16:9) · `regen_tts_itts.py` (**默认配音引擎** IndexTTS-2 情感整段模式: emo参考+整段直出+数字邻接逗号改写+digitmerge门+拼音纠正+whisper拼音平面门, CPU-only, 原生语速, 输出与F5同接口; EMO_MODE=0 退逐句后备) ·
+`$PERSONAL_ASSETS/ending.mov` + re-encode 1080p60; auto 9:16/16:9; 缺资产自动降级跳片尾) · `regen_tts_itts.py` (**默认配音引擎** IndexTTS-2 情感整段模式: emo参考+整段直出+数字邻接逗号改写+digitmerge门+拼音纠正+whisper拼音平面门, CPU-only, 原生语速, 输出与F5同接口; EMO_MODE=0 退逐句后备) ·
 `regen_tts.py` (F5 后备: QUADRUPLE-GATE cloned TTS: anti-leak probe + junk-insert
 detection + acronym-completeness + zero intra-line pauses per take, 5 takes, best-of; strips "/" from vo;
 TARGETS-resumable) · `check_tts.py` (transcript-check report) ·

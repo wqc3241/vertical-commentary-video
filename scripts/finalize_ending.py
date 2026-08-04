@@ -16,13 +16,26 @@ NOTE (2026-07-13): single-pass filter_complex concat dies on this Mac's ffmpeg
 parts to IDENTICAL specs, then concat demuxer -c copy. Don't refactor back."""
 import os, sys, json, subprocess, tempfile
 
+# 个人资产家 (品牌片尾属个人形象, 绝不入 git — 见 docs/ONBOARDING.md)
+PERSONAL = os.environ.get("PERSONAL_ASSETS", "/Volumes/Storage/avatar-template/assets")
 _CAND = [os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "ending.mov"),
-         os.path.expanduser("~/.claude/skills/vertical-commentary-video/assets/ending.mov")]
-ENDING = next((p for p in _CAND if os.path.exists(p)), _CAND[-1])
+         os.path.join(PERSONAL, "ending.mov")]
+ENDING = next((p for p in _CAND if os.path.exists(p)), None)
 # 片尾快速口播 (user rule 2026-08-03: "关注我，了解更多网球故事，网球知识" 以最快速度).
 # 资产存在则自动混进片尾段 (卡片自带音轨压 0.5 让语音清晰); 不存在则行为与旧版完全一致.
 ENDVOICE = next((p for p in (c.replace("ending.mov", "ending_voice.wav") for c in _CAND)
                  if os.path.exists(p)), None)
+
+def no_ending_finalize(src, out, w, h):
+    """新用户无片尾资产: 只做 1080p60 统一重编码, 提示走 ONBOARDING 录制."""
+    print("⚠ 未找到片尾资产 ending.mov (个人品牌件, 不随仓库分发) — 跳过片尾, 仅统一 1080p60。")
+    print("  制作自己的片尾: 见 docs/ONBOARDING.md 第3步; 就绪后放入 $PERSONAL_ASSETS 再重跑。")
+    vf = ("scale=1920:1080" if w >= h else "scale=1080:1920") + ":flags=lanczos,fps=60,format=yuv420p"
+    fd, tmp = tempfile.mkstemp(suffix=".mp4", dir=os.path.dirname(os.path.abspath(out)) or "."); os.close(fd)
+    subprocess.run(["ffmpeg","-y","-loglevel","error","-i",src,"-vf",vf,
+        "-c:v","libx264","-preset","medium","-crf","17","-c:a","aac","-b:a","192k",
+        "-metadata","comment=finalized-with-ending","-movflags","+faststart",tmp], check=True)
+    os.replace(tmp, out)
 
 def probe(p):
     j = json.loads(subprocess.check_output(["ffprobe","-v","error","-show_entries",
@@ -49,10 +62,11 @@ def enc_ending(src, vf, out):
 def main():
     src = sys.argv[1]
     out = sys.argv[2] if len(sys.argv)>2 else src
-    assert os.path.exists(ENDING), f"missing {ENDING}"
     w,h,dur,tag = probe(src)
     if tag == "finalized-with-ending":
         print(f"SKIP: {src} already finalized"); return
+    if ENDING is None:
+        no_ending_finalize(src, out, w, h); return
     if w>=h:   # 16:9
         mvf = "scale=1920:1080:flags=lanczos,fps=60,format=yuv420p"
         evf = "crop=1080:608:0:738,scale=1920:1080:flags=lanczos,fps=60,format=yuv420p"

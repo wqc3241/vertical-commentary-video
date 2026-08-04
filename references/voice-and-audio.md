@@ -48,8 +48,8 @@ uv venv --python 3.13 /Volumes/Storage/voice-clone/venv
 uv pip install --python /Volumes/Storage/voice-clone/venv/bin/python f5-tts
 # restore the engine + reference clip from the skill assets:
 cp ~/.claude/skills/vertical-commentary-video/assets/clone.py           /Volumes/Storage/voice-clone/
-cp ~/.claude/skills/vertical-commentary-video/assets/voice_ref.wav      /Volumes/Storage/voice-clone/
-cp ~/.claude/skills/vertical-commentary-video/assets/voice_ref_text.txt /Volumes/Storage/voice-clone/
+# 音色参考属个人声音数据, 不随仓库分发 — 自己的参考按 docs/ONBOARDING.md 第1步录制,
+# 存放于 /Volumes/Storage/voice-clone/ (或 personal.env 里自定义的位置)
 ```
 
 **Better reference = better clone.** A clean, quiet 30–60s sample lifts quality. To re-clone from a
