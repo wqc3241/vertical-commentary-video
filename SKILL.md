@@ -1,19 +1,13 @@
 ---
 name: vertical-commentary-video
 description: >-
-  Build a 9:16 vertical narrated commentary / highlight video for Xiaohongshu (小红书),
-  Reels, TikTok, or Shorts from real match/event footage plus a voiceover in the user's
-  OWN cloned voice. Use this whenever the user wants a vertical short video, 竖屏解说视频,
-  高光集锦, or 小红书视频 about a sports player, match, tournament, or any topic where real
-  footage is narrated — e.g. "做一个关于XX选手的小红书竖屏视频", "把这场比赛剪成竖屏解说",
-  "make a narrated highlights short about X", "turn this into a vertical reel with my voice".
-  It runs the whole pipeline: fact-check via web search, generate the 解说词 in the USER'S OWN
-  ChatGPT via their browser (mandatory), source native-vertical Instagram/TikTok clips FIRST
-  (landscape yt-dlp + blur letterbox only as per-scene fallback), detect rally/shot boundaries so
-  cuts land on COMPLETED points, generate narration in the user's cloned voice (F5-TTS) or align
-  a recording the user provides, and render 9:16 with burned Chinese captions, a stats card, and
-  a final poster. Trigger even when the user only describes the topic + format without listing
-  every step.
+  Build a ready-to-post 9:16 narrated commentary or highlight video for Xiaohongshu, Douyin,
+  Reels, TikTok, or Shorts. Use for 竖屏解说视频、高光集锦、网球人物故事, or any topic narrated
+  over real footage. Runs the staged pipeline: research and oral Chinese script, script and
+  footage approval gates, identity-verified sourcing, IndexTTS-2 narration in the user's voice,
+  word-exact captions, low-memory rendering, scene previews, subject/audio/timeline QC, branded
+  ending, environment-routed AI dual covers, publish copy, and chapters. Trigger even when the user only gives
+  a topic and approximate duration.
 ---
 
 # Vertical Commentary Video Builder
@@ -127,6 +121,35 @@ Hard-won quality rules — the user cares about these, don't regress them:
    16s static card loses viewers). Use per-scene `CARDS`+`treat="card:<key>"` slices inside a montage.
    Card text must not collide with the scene chip — give inserted cards `title=""` (the chip IS the
    title); if a chip covers a face, drop the chip for that scene.
+14. **人物专题实行“目标人物零容忍” (2026-08-04 大坂直美复盘).** 除非念白正在明确讲另一个人,
+   每个视频窗、照片和数字人底图都必须是目标人物; 对手的庆祝、走场、近景和观众 cutaway 不能拿来
+   “补画面”。在 `scenes.py` 旁维护逐场景主体清单 `Sx → target / intentionally-other / reject`,
+   预览也按具体秒段验人。任何一帧身份不确定就换素材, 不把猜测留给用户审片。
+15. **用户指定静态图节奏时, 精确时长覆盖通用 ≤3s 规则.** 例如“5 张图每张 1.5 秒”必须写成
+   5 个独立 `(stem,tin,dur=1.5)` slice, 成片按帧核对; 若用户说“混剪结束后都换成视频”, 最后一张
+   静态图之后严禁再出现任何 still/card。不要把总时长均分后四舍五入成近似值。
+16. **念白、字幕、TTS 只有一个 canonical source.** 用户审批后的 `scene.vo` 是唯一真源; TTS 输入、
+   断句字幕、预览脚本和发布文案中的引用都从它派生。修一句要同时改源数据并重生对应音频/字幕,
+   禁止 TTS 阶段临时润色、同义改写或拿旧音频拼回去。最终逐 scene 对听文字, 必须逐字一致。
+17. **片尾是“两句连续交接”, 不能漏 CTA.** 正文最后一句必须是能激发评论的开放式问题; 随后把
+   `关注我，了解更多网球故事和知识。` 作为独立尾音轨接入品牌片尾。CTA 可单独加速到刚好覆盖
+   ending.mov, 但不能提前塞进上一场、被品牌声盖住或因时长不足直接删除。交付前耳听确认问题句结束
+   后 CTA 才开始, 且 CTA 与品牌动画同起同落。
+18. **网球文案固定口径:** 标题首字符是 `🎾`; 口语化、像真人讲故事, 少用“不是…而是…”模板对比;
+   结尾用开放提问; 当人物经历很多但仍年轻时, 明确说出年龄/“依然很年轻”来托住“未来仍有可能”的落点。
+19. **精确反馈只做外科修复.** 用户指出“预览 B 4–7 秒人物错了”时, 只替换该窗口、重渲对应 scene
+   和受影响 preview, 再对这段的首/中/尾帧做身份复核; 不无故整片重跑。反馈确认后要主动继续下一门禁,
+   每个耗时阶段都明确说明“正在运行的进程/产物/下一检查点”, 不能把尚未启动说成“正式制作中”。
+20. **最终交付是完整五件套, 不是只给一个 MP4.** 必须包含: ① 完整成片; ② 小红书标题;
+   ③ 小红书发布正文+tags; ④ 竖版 `3:4 1242×1656` 封面; ⑤ 横版 `4:3 1440×1080` 封面。
+   视频 ≥1 分钟时另附章节列表。五件套全部落到实际项目目录并检查可打开后才算 deliverable 完成。
+21. **动态演示内容默认用 HyperFrames 出竖版动态卡 (2026-08-09 用户拍板, A/B 对比后引入).**
+   示意图/数据演示/对比讲解这类"要动起来才讲得清"的画面, 用 HyperFrames (HTML+GSAP→MP4) 生成
+   1080×1920 无声 stem 当普通素材嵌入; 账号样式从 `assets/hyperframes-card-template/frame.md`
+   继承(色板/字体/组件冻结, 对应封面"四区冻结"的动效版); `npm run check` 全绿 + snapshot 逐字
+   校验后才渲染; 站内卡让位字幕带与 chip、时长=念白槽位、无声即正确。完整规矩
+   → `references/hyperframes-dynamic-cards.md`。静态 PIL 卡体系(战绩卡 `treat="card:"`)保留不删,
+   一屏静态数据仍可走老路。
 
 ## Approval gates — NEVER one-shot the whole video (the user requires this, 2026-07)
 Build in stages and STOP for sign-off **twice**. Do NOT run TTS / render / assemble until BOTH gates pass —
@@ -169,9 +192,13 @@ cp ~/.claude/skills/vertical-commentary-video/scripts/*.py ~/.claude/skills/vert
 ```
 
 ### 1. Lock the script (TEXT FIRST — get sign-off before building visuals)
-- Recent/ongoing event → **verify every fact with web search FIRST** (scores, opponents, records,
-  dates; treat post-cutoff dates as unknown until checked). Names/scores go on screen — get them
-  exact. These verified facts feed the ChatGPT prompt below so it can't invent numbers.
+- **FACT-CHECK GATE — applies to every topic, not only breaking news.** Before writing, make a compact
+  fact sheet covering every checkable claim that may enter the narration or screen: dates, age, scores,
+  opponents, titles, records, quotes, rules, brands and event/venue. Prefer an official/primary source;
+  use a second independent source for consequential or disputed claims. Recent/ongoing events must be
+  verified live and post-cutoff facts are unknown until checked. Put only verified facts into the GPT
+  prompt; remove or explicitly flag anything unverified, and preserve the source URLs/notes in the project.
+  Names and numbers appear on screen, so approximate memory is not acceptable.
   **省 token 三则 (2026-08-02 实测标定, 前期约占全会话 10–15%):**
   ① **WebFetch 黑名单**: `atptour.com` / `scmp.com` / `rappler.com` 一律 403 — 别撞, 用 WebSearch
   综述或维基; ② **系列/成对选题合并核查**(两人一轮查完, 实测省近半); ③ 中英文各查一遍是**必要**的
@@ -202,6 +229,10 @@ cp ~/.claude/skills/vertical-commentary-video/scripts/*.py ~/.claude/skills/vert
   3. **少用「不是…而是…」这类转折句式**(以及其它生硬的对比转折)。
   4. **英文大写缩写**:字幕/文案保留原文 (NCAA/TCU/ATP),念白 `vo` 写成顿号逐字母 `N、C、A、A`(见 step 3)。
   5. **人名用该账号惯用的中文译名;用户点名的昵称优先**(例:Learner Tien = 钱学生, 2026-07-22)。
+  6. **开头 2–3 句必须形成 hook:** 尽快给出人物、反差/悬念或本期最值得看的问题, 让用户知道为什么
+     要继续看; 只能使用已核实事实, 禁止“震惊、封神、所有人都没想到”式夸张和无依据吊胃口。
+  7. **最后一句必须是开放式提问:** 问法要与故事落点直接相关、没有标准答案, 让用户愿意留言或分享
+     自己的看法; 不能用“你觉得呢”这种空泛占位, 也不能在问题后再补新的正文结论。
 - Treat the output as a DRAFT. **→ SCRIPT GATE: present the full script (per-scene vo + 断句 + 标题/正文/tags,
   with any factual/style fixes you made) and WAIT for the user's approval before touching footage.** Only if the
   browser/ChatGPT is genuinely unavailable may you draft the script yourself — and say so explicitly when presenting.
@@ -211,6 +242,9 @@ cp ~/.claude/skills/vertical-commentary-video/scripts/*.py ~/.claude/skills/vert
   line must equal the spoken words (only numerals / the 比↔- score separator differ) or caption timing drifts;
   keep every caption line **≤13 chars** so it never overflows (render.py wraps at 820px as a backstop). Fill
   `RESULTS_CARD`/`POSTER`. Then move to footage — the **next** stop is the Footage gate, not the render.
+- **脚本通过后才设计画面和搜索素材.** 逐 scene 根据已批准念白写清“这句话需要看到什么”以及搜索词,
+  再搜索相符的视频/图片; 优先级为原生竖版视频 → 竖版真实图片 → 横版视频跟踪裁切 → 横版完整画面
+  blur-letterbox。不能先囤一批漂亮镜头再反过来改文案迁就素材; 每个画面必须服务对应念白。
 
 ### 2. Source footage — VERTICAL-FIRST → `references/vertical-footage-and-instagram.md`
 **DEFAULT: use真·竖屏 footage wherever possible — the user has emphasised this repeatedly; the
@@ -245,6 +279,12 @@ covers match-point/identity/montage selection in detail; identity checks apply t
 (我方=品牌+球衣+头饰, 对手=…, 陷阱时间点=卡片/画中画/对手庆祝), 之后同源的每个新窗口**对表**,
 只有单人特写/表上没有的存疑帧才再开图。全分辨率那一次不能省 — 两次差点用错人(吴易昺的握拳、
 莱赫奇卡的背影)都是缩略图看不出、原始分辨率才认出来的。
+**2b. 动态演示卡 (HyperFrames) — 规则 21 的生产步骤.** 念白在"演示/对比/讲原理"而没有对应真实
+画面的 scene, 不硬凑素材也不停在静态图: 按 `references/hyperframes-dynamic-cards.md` 用
+HyperFrames 出动态卡 stem (`source/hf_*.mp4`, 原生竖版自动满屏, `lock: True`, reframe 自动跳过,
+assemble 自动补静音)。模板+账号 frame.md 在 `assets/hyperframes-card-template/`; `check` 全绿 +
+snapshot 逐字校验后渲染 (60fps `-w 2`, 与其它重任务串行)。动态卡也进 footage-gate 清单, 标注
+"HF动态卡: <演示什么>" 并附 snapshot 帧。
 **→ FOOTAGE GATE: present the per-scene clip plan (with the contact-sheet frames you verified) and WAIT for
 approval before step 3.** Montage note: clips are sliced **equally** (`D/n`), so a caption beat can spill onto the
 next clip — order clips so the important line (the punchline / the named player) lands on the RIGHT clip, and say
@@ -273,7 +313,10 @@ caffeinate -i nice -n 15 /Volumes/Storage/indextts2/.venv/bin/python \
 checkpoints/pinyin.vocab; 前后鼻音如 林LIN2 标了也可能仍偏 — 标注后交用户终审, 别空耗稿数) ·
 **whisper 门**(拼音平面相似度≥0.80 + 幻觉插入 + 缩写逐字母)。
 **16G Mac 内存规矩: 一律 device=cpu** — MPS 有泄漏, 每进程只能出 1 段就顶到水位(0.5/0.7 都试过);
-CPU 整段~35-60s/场 RSS≈2G 整机无感。首次失控裸跑曾把系统挤崩 — 任何新引擎上线前先定内存上限。
+CPU 整段~35-60s/场 RSS≈2G。**默认低影响串行:** `nice -n 15`, 一次只跑 1 个重任务; TTS、reframe、
+数字人、ffmpeg 总渲染、视觉 QC 不得并行; 小批次出完主动释放模型/进程后再进下一阶段。开跑前用
+`vm_stat`/`ps` 看水位, 运行中抽查 RSS; 内存压力升高就暂停下一批, 不靠 swap 硬顶。首次失控裸跑
+曾把系统挤崩 — 任何新引擎上线前先小样测 RSS 并定上限, 不能影响用户正常使用电脑。
 **情感参考升级路径**: 现用跑步 vlog 参考(音高起伏0.41 最活); 用户补录 20-30s"给朋友讲球"状态
 的自然语音后换 EMO_REF, 天花板更高。高潮/温情场可 per-scene 换不同情感参考(scenes.py 加字段, 未接线)。
 
@@ -426,7 +469,16 @@ names**, the win/trophy is YOUR player, the poster. For recorded takes, sync-spo
    slice lengths and shifts every window: after any re-assembly, re-extract frames and repeat checks
    1+4 on the shifted windows. A full-screen "COACH" title card drifted into frame TWICE this way
    (2026-07-22) — the previous QC pass does not protect the new cut.
+6. **Subject manifest audit** — 把最终 timeline 每个 scene/montage slice 与主体清单逐项勾销; 对每个
+   窗口抽首/中/尾三帧, 尤其复查用户曾点名的秒段。对手或身份不明帧 = fail, 不能因其余画面正确放行。
+7. **Voice/text/end audit** — 逐 scene 对照 canonical `vo` 听写, 字幕同步同源; 检查全片无音轨空洞;
+   最后开放问题句完整, `关注我，了解更多网球故事和知识。` 清楚可闻且加速同步品牌片尾。
+8. **Still/video boundary audit** — 对所有照片核对精确时长; 若项目约定静态混剪后只用视频, 抽取
+   boundary 前后帧并确认此后零静态图。三项门禁(人物、声音文字、时间线/片尾)全绿才算可发布成片。
 Deliver the MP4. Re-render only changed scenes (`render.py scene <ID>` / `render16.py scene <ID>`).
+
+**最终五件套核验:** 完整成片 + 小红书标题 + 发布正文/tags + 竖版3:4封面 + 横版4:3封面。
+逐项给出项目内绝对路径; 视频用 `ffprobe` 验证可播放, 双封面读回尺寸, 标题/正文检查完整且与成片一致。
 
 **内容章节 — the 4th standard deliverable (user standard 2026-07-16), alongside 成片/封面图/发布文案:**
 a chapter list with timestamps + themes, appended to `小红书发布文案.md`.
@@ -443,13 +495,26 @@ a chapter list with timestamps + themes, appended to `小红书发布文案.md`.
   and confirm the scene chip/content matches the chapter title — never ship unchecked arithmetic.
 - Titles follow the copy-style rules (Arabic digits, natural phrasing, no hype).
 
-### 8. 小红书封面图 — deliver WITH the 发布文案, every video (user standard, 2026-07)
-**The cover MUST be generated in the user's web ChatGPT — NEVER self-generate one (user hard rule
-2026-07-16: "一定要用 web 版 GPT 去生成,不要你自己生成").** Local `make_cover.py` typography is NOT an
-acceptable default or silent fallback — it may be used only if GPT repeatedly fails AND the user
-explicitly approves switching. One consistent cover style across the account, made in the SAME project
-chat that wrote the 解说词. The account typography is FROZEN — four text zones, only the 【】 slots vary
-per video:
+### 8. 双平台封面图 — deliver WITH the 发布文案, every video (updated 2026-08-04)
+**先按当前运行环境选生成入口, 这是硬分流规则:**
+- **由 Codex 制作** → 使用 Codex 内置 Image 2 / `image_gen`; 不为了生成图片另外打开 Web ChatGPT。
+- **由 Claude 制作** → 使用用户自己的 Web 版 GPT 项目生成; 保留原来的浏览器上传 reference +
+  网页取回流程, 不改用 Claude 本体画图。
+- 这条分流适用于封面、示意图和流程中所有需要 AI 生成的视觉素材; 用户在**当前项目明确指定另一种
+  入口**时才覆盖。真实比赛视频和真实照片仍按素材来源规则搜集, 不用 AI 冒充。
+
+网球人物故事必须把用户提供或已验证身份的真实照片作为 reference image; 目标是保留同一个人的真实
+身份特征并完成固定排版, 不是凭空画一个相似人物。Local `make_cover.py` 不是默认替代方案, 只有当前
+环境对应的 Image 2/Web GPT 多轮文字失败且用户明确同意时才用。
+
+**一次独立生成两版, 禁止互裁:** 竖版 `3:4 1242×1656` + 横版 `4:3 1440×1080`; 横版必须重新构图,
+不能从竖版裁出来。竖版标题/副标题全部位于**画面上半部分**, 下半部分留给人物和完整服装; 横版文字
+放左侧、人物放右侧, 同样保证人脸、手和服装不被字压住。两版存入 `<project>/final/covers/`, 并复制
+`封面图-竖3x4.jpg`、`封面图-横4x3.jpg` 到**实际项目根目录**供 macOS 文件选择器直接上传; 不得只留在
+Codex 临时输出目录。保存后用 `identify`/`sips` 读回尺寸并逐字检查标题。
+
+One consistent cover style across the account. The account typography is FROZEN — four text zones,
+only the 【】 slots vary per video:
 > 大标题「【主标,≤6字,压缩自小红书标题】」厚重宋体衬线白字深色描边 · 其下金色副标题「【副标,≤10字】」·
 > 左上角红棕圆角胶囊白字「网球故事」(不压标题) · 底部居中白字「【主人公人名】」两侧金色小圆点 ·
 > 竖版3比4 · 所有汉字逐字准确 · 除四处文字外无任何其他文字/水印/logo
@@ -463,9 +528,10 @@ per video:
 - GPT 项目会惯性沿用老模板:prompt 必须显式写「这期不要胶囊、不要人名」;若它仍套错,不要重新生成,
   用「基于你上一张生成的封面图修改:…」来纠正(重出图会连底图一起换掉)。
 
-**系列/示意图类封面 — 一条文字 prompt 让 GPT 一次出多张 (2026-07-30 选拍指南7期实证, 用户明确要求):**
+**系列/示意图类封面 — 仍按运行环境分流生成 (2026-08-04):**
 封面主体是图表/示意图(非真人照片)时, **不要走 MODE A 的底图注入** —— 把版式和每张的图形内容用文字描述清楚,
-一条 prompt 就能让 GPT 一次生成 7 张风格统一的封面, 汉字全部正确。底图注入(压缩→b64→分片)每张要 10+ 次
+Codex 用内置 Image 2 / `image_gen`; Claude 在 Web GPT 中用一条 prompt 生成整套风格统一的封面。
+底图注入(压缩→b64→分片)每张要 10+ 次
 调用且分片会被静默截断, 只在必须保留真人实拍时才值得。
 **成图取回本地 — 用 `cover_bridge.py`, 三个条件缺一不可 (2026-07-30 实测定论):**
 ① 页面内 `fetch(img.src)`→FileReader→dataURL (图片是同源要 cookie 的 backend-api URL, 服务端 curl 拿不到);
@@ -476,12 +542,15 @@ per video:
 (`a.download` 在 in-app 浏览器被沙箱吃掉; `file_upload` 白名单拒绝项目文件; 取 accessToken 本地 curl 会被
 harness REDACT —— 这三条确实不通, 但**不要**因此断言"图取不回来"。)
 
-**MODE A — 真实照片底图 + GPT 只做排版 (真人封面; user decision 2026-07-13,不要纯AI画人):**
+**MODE A — 真实照片 reference + 环境对应生成器 (网球人物故事默认):**
 1. **Find the real photo**: the subject's IG / official collab posts (@wta·@wimbledon×player "champion"
    posts are gold) / a full-res frame from own footage. Prefer 竖版, high-emotion 夺冠特写 (捧杯/举杯/
    泪目). Identity-verify via the rule-3 ladder. Download: IG scontent → hidden-form POST the signed URL
    to `scripts/cover_bridge.py` (server-side fetch works for IG, unlike oaiusercontent).
-2. **Attach it to the ChatGPT chat — 首选 window.name 接力, 4 步搞定 (2026-08-02 实证, 见 memory
+2. **Codex 路径:** 直接调用内置 `image_gen` 编辑 reference image。Prompt 必须明确锁住人物的脸型、
+   五官、肤色、发型、体型、原照片服装/姿势与场景, 只允许为适应版式做背景延展和文字设计。生成后
+   全分辨率比对脸、服装和手; 人物变成“像她的另一个人”就定点编辑/重生, 绝不交付。
+3. **Claude 路径 — 必须使用 Web ChatGPT, 首选 window.name 接力 (2026-08-02 实证, 见 memory
    `cover-inject-window-name-relay`)**: 图所在目录起 `python3 -m http.server` → 新标签开
    `http://127.0.0.1:<port>/<img>` 并在页内 fetch→FileReader→`window.name=dataURL` → **同一标签**导航到
    chatgpt.com(window.name 跨域存活; CSP 挡的是 chatgpt 去 fetch localhost, 不挡 localhost 页自己 fetch)
@@ -491,17 +560,18 @@ harness REDACT —— 这三条确实不通, 但**不要**因此断言"图取不
    truncate) → `atob`→`Uint8Array` (check JPEG magic 0xFFD8) → `new File`→`new DataTransfer` →
    dispatch `ClipboardEvent('paste',{clipboardData:dt})` on the focused `#prompt-textarea` → confirm
    the attachment thumbnail appears (screenshot). ~10 tool calls.
-3. **Prompt** (one line, insertText): 「以我附上的这张她本人的真实夺冠照片为封面底图:保留照片里真实的
+4. **Prompt** (one line, insertText): 「以我附上的这张她本人的真实夺冠照片为封面底图:保留照片里真实的
    人物、姿势和球场背景,不要重绘、替换或美化人物,只在这张照片上做封面排版——【四处文字模板】;画面按
-   竖版3比4输出,可在上下用照片的虚化延展补足空间,所有汉字必须逐字准确。」 The output keeps the
-   authentic face/pose/crowd with the typography on top. Wait 60-120s.
-4. **逐字校验 (MANDATORY — 4o's #1 failure is mangled hanzi):** download the result (in-page
+   竖版3比4输出,主标题和副标题完整放在画面上半部分,可在上下用照片的虚化延展补足空间,所有汉字必须
+   逐字准确。」横版另起一次生成: `4:3, 文字左、人物右`, 不复用竖版裁切。
+5. **逐字+身份校验 (MANDATORY):** download/read the result (Web 路径用 in-page
    `fetch(img.src)`→b64→form-POST to the bridge; async JS must write to `window.__r`, direct await
-   returns `{}`), crop the four text zones at FULL resolution, Read them, check EVERY character.
-   Any wrong/extra/missing char → tell GPT which char and regenerate in the same chat.
-5. Upscale to 1242×1656 lanczos → `封面图.jpg`, delivered together with `小红书发布文案.md`.
+   returns `{}`), crop the four text zones at FULL resolution, Read them, check EVERY character, then
+   compare the face/outfit with the reference. Any wrong/extra/missing char or identity drift → targeted
+   edit/regenerate. 输出双封面到项目目录并与 `小红书发布文案.md` 一起交付。
 
-**MODE B — 全AI直出 (fallback when no usable real photo exists):** same four-text-zone template plus
+**MODE B — 全AI直出 (fallback when no usable real photo exists):** 生成入口仍严格按环境分流
+(Codex=`image_gen`; Claude=Web GPT), then use the same four-text-zone template plus
 人物主体描述【外形+本片高光瞬间特写】+ 写实电影感【光线/场景】+ 人物占中下2/3、头顶不碰副标题。
 高光瞬间 = the video's emotional peak (夺冠=举杯, 逆转=怒吼, 告别=背影…). Pose language must be
 PRECISE (高举过头顶≠捧起≠端着 — "捧起" rendered as 端盘子 once). Pose/composition fixes = EDIT the
@@ -519,7 +589,9 @@ vanished) and cmd+A-delete can fail so text ACCUMULATES → always `javascript_t
 innerText, then JS-click `button[data-testid="send-button"]`. Newlines auto-send — ONE line only.
 
 ### 9. 发布 — when the user asks to publish, use the `publish-xhs-douyin` skill
-Both platforms' web backends are fully automatable from Claude-in-Chrome (proven 2026-07-23):
+Both platforms' web backends are handled through the environment-specific authenticated browser:
+**Codex uses its in-app Browser; Claude uses Claude for Chrome.** Keep that browser path for the whole
+publish run and reuse the user's logged-in tabs; do not switch to a new/headless browser.
 video upload via the window.name relay + `publish_bridge.py`, title/body/tags, chapter features,
 declarations, custom cover, and 定时发布. The complete dual-platform playbook (step order, injection
 snippets, per-platform quirks, timezone semantics, white-screen recovery) lives in the separate
@@ -569,6 +641,8 @@ vertical stems + `FIT_WINDOWS`) ·
 never stretches; respects `IG_EXCLUDE`).
 render.py prefers a `build/reframed/<stem>_<tin>_<dur>.mp4` if present (full-bleed) else blur-fill — see
 `references/vertical-footage-and-instagram.md`.
+动态演示卡不走 `scripts/` — 引擎是外置的 HyperFrames CLI (npx), 账号模板+frame.md 在
+`assets/hyperframes-card-template/`, 集成规矩在 `references/hyperframes-dynamic-cards.md` (rule 21)。
 
 Voice cloning lives at `/Volumes/Storage/voice-clone/` (venv + `clone.py` + the user's reference clip;
 `VOICE_SPEED` env controls pace). Recreate per `references/voice-and-audio.md` if missing.

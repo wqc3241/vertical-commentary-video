@@ -1,0 +1,62 @@
+{
+  "envelope": {
+    "id": "tennis-bounce-card",
+    "width": 1080,
+    "height": 1920,
+    "fps": 60,
+    "duration": 10,
+    "format": "mp4"
+  },
+  "category": "charts",
+  "asset_needs": [],
+  "brief": "10s vertical (9:16) unnarrated comparison card: how a tennis ball bounces on clay vs hard vs grass courts. Three stacked surface panels (红土/硬地/草地), each with an animated ball trajectory over a ground line (clay = steep slow HIGH rebound, hard = medium regular rebound, grass = fast LOW skidding rebound), a drawn trajectory trail that persists, ITF pace-category pill (1类慢速 / 3-4类中速 / 5类快速), representative slam chip (法网/澳网·美网/温网), and two relative bars (球速保留 / 弹跳高度). Signature move: after all three panels have played once, all three balls replay SIMULTANEOUSLY so the speed/height difference reads side-by-side. Ends on tagline 同一颗球，三种脾气。 Account style: dark warm ink background, clay #C4563A + gold #E2BC68 accents, white #F8F6F3 text, heavy CJK sans (Hiragino Sans GB), pill chips matching the account's vertical-commentary card system.",
+  "content": {
+    "title": "三种球场，弹跳差在哪？",
+    "chip": "网球小知识",
+    "panels": [
+      {
+        "id": "clay",
+        "name": "红土",
+        "itf": "ITF 1类 · 慢速",
+        "slam": "法网",
+        "trait": "弹跳高过肩，回合更长",
+        "accent": "#C4563A",
+        "speed": 0.35,
+        "bounce": 0.92
+      },
+      {
+        "id": "hard",
+        "name": "硬地",
+        "itf": "ITF 3-4类 · 中速",
+        "slam": "澳网 · 美网",
+        "trait": "弹跳规则，攻防平衡",
+        "accent": "#3D7FBF",
+        "speed": 0.62,
+        "bounce": 0.62
+      },
+      {
+        "id": "grass",
+        "name": "草地",
+        "itf": "ITF 5类 · 快速",
+        "slam": "温网",
+        "trait": "弹跳低且滑，节奏更快",
+        "accent": "#4C9160",
+        "speed": 0.88,
+        "bounce": 0.28
+      }
+    ],
+    "tagline": "同一颗球，三种脾气。",
+    "footnote": "ITF 场地速度分级：1类最慢 — 5类最快"
+  },
+  "motion": {
+    "beats": [
+      { "t": 0.1, "what": "chip drop-in + title chars staggered rise + gold rule sweep" },
+      { "t": 1.2, "what": "clay panel slides in; ball bounce pass (slow, high); trail draws and persists; dust puff; bars fill" },
+      { "t": 3.0, "what": "hard panel slides in; ball bounce pass (medium); impact ring; bars fill" },
+      { "t": 4.6, "what": "grass panel slides in; ball bounce pass (fast, low skid); skid streak; bars fill" },
+      { "t": 7.2, "what": "SIGNATURE: all three balls reset and replay simultaneously over their persisted trails" },
+      { "t": 8.9, "what": "tagline + ITF footnote rise in; hold to 10.0" }
+    ],
+    "runtime": "gsap + MotionPathPlugin, single paused timeline, no repeats"
+  }
+}
