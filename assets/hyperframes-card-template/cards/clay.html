@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js" integrity="sha384-sG0Hv1tP1lZCk9KQmrIbY/XNwi+OY84GQqhMscbnsoBFqAz8KNCil1kvfL3Hbbk2" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/MotionPathPlugin.min.js" integrity="sha384-bRevQK3DiusS1XALpRyWfXNcSVNuNxBOUk12Tk44IsnfepFlBwFe8h/82zWbDxqi" crossorigin="anonymous"></script>
+    <style>
+      @font-face { font-family: "Hiragino Sans GB"; src: local("Hiragino Sans GB"); }
+      @font-face { font-family: "PingFang SC"; src: local("PingFang SC"); }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: #000; }
+      body { font-family: "Hiragino Sans GB", "PingFang SC", sans-serif; color: #f8f6f3; font-weight: 600; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      #bg { position: absolute; inset: 0;
+        background: radial-gradient(120% 70% at 50% -10%, rgba(196,86,58,0.20), rgba(0,0,0,0) 55%),
+                    linear-gradient(180deg, #201310 0%, #140c08 45%, #0a0605 100%); }
+      .clip { position: absolute; inset: 0; }
+      #pname { position: absolute; left: 98px; top: 330px; font-size: 78px;
+        text-shadow: 0 3px 10px rgba(0,0,0,0.5); opacity: 0; }
+      #itf { position: absolute; left: 300px; top: 352px; height: 62px; border-radius: 31px;
+        background: #c4563a; display: flex; align-items: center; padding: 0 24px;
+        font-size: 34px; opacity: 0; }
+      #slam { position: absolute; right: 98px; top: 352px; height: 62px; border-radius: 31px;
+        background: rgba(255,255,255,0.10); color: #eee2d6; display: flex; align-items: center;
+        padding: 0 24px; font-size: 34px; opacity: 0; }
+      #trait { position: absolute; left: 98px; top: 462px; font-size: 36px; color: #d8cdc0; opacity: 0; }
+      #stage { position: absolute; left: 98px; top: 560px; width: 884px; height: 520px; }
+      #stage svg { position: absolute; inset: 0; overflow: visible; }
+      #ground { position: absolute; left: 0; right: 0; top: 460px; height: 4px; background: rgba(255,255,255,0.26); }
+      #ball { position: absolute; left: 0; top: 0; width: 34px; height: 34px; margin: -17px;
+        border-radius: 50%; opacity: 0;
+        background: radial-gradient(circle at 35% 30%, #f4ff86, #d9ec2f 65%, #aebd1e);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.45); }
+      #fx { position: absolute; left: 300px; top: 452px; width: 80px; height: 34px; margin: -17px -40px;
+        border-radius: 50%; background: rgba(206,110,80,0.55); filter: blur(5px); opacity: 0; }
+      .brow { position: absolute; left: 98px; display: flex; align-items: center; opacity: 0; }
+      .blab { width: 190px; font-size: 36px; color: #d8cdc0; }
+      .btrack { height: 18px; border-radius: 9px; background: rgba(255,255,255,0.12); overflow: hidden; }
+      .bfill { display: block; height: 18px; border-radius: 9px; width: 100%; background: #c4563a; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="clay" data-start="0" data-fps="60"
+         data-width="1080" data-height="1920" data-duration="3.7">
+      <div id="bg"></div>
+      <section id="scene" class="clip" data-start="0" data-duration="3.7" data-track-index="1">
+        <div id="pname">红土</div>
+        <div id="itf">ITF 1类 · 慢速</div>
+        <div id="slam">法网</div>
+        <div id="trait">摩擦大，球被「咬住」— 弹得高，走得慢</div>
+        <div id="stage">
+          <div id="ground"></div>
+          <svg viewBox="0 0 884 520">
+            <path id="tr-in" d="M -10 40 L 300 460" fill="none" stroke="#e0714e" stroke-width="6" stroke-linecap="round" stroke-dasharray="8 14" />
+            <path id="tr-out" d="M 300 460 Q 480 -180 660 380" fill="none" stroke="#e0714e" stroke-width="6" stroke-linecap="round" stroke-dasharray="8 14" />
+          </svg>
+          <div id="fx"></div>
+          <div id="ball"></div>
+        </div>
+        <div class="brow" id="b1" style="top: 1150px"><span class="blab">球速保留</span><span class="btrack" style="width: 147px"><span class="bfill" id="f1"></span></span></div>
+        <div class="brow" id="b2" style="top: 1236px"><span class="blab">弹跳高度</span><span class="btrack" style="width: 386px"><span class="bfill" id="f2"></span></span></div>
+      </section>
+    </div>
+    <script>
+      gsap.registerPlugin(MotionPathPlugin);
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo("#pname", { x: -50, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 0.1);
+      tl.fromTo("#itf", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(1.7)" }, 0.3);
+      tl.fromTo("#slam", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(1.7)" }, 0.4);
+      tl.fromTo("#trait", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 0.5);
+      const pin = document.getElementById("tr-in"), pout = document.getElementById("tr-out");
+      for (const p of [pin, pout]) { const L = p.getTotalLength(); p.style.strokeDasharray = `${L}`; p.style.strokeDashoffset = `${L}`; p.dataset.len = L; }
+      tl.set("#ball", { opacity: 1 }, 0.7);
+      tl.to("#ball", { motionPath: { path: "M -10 40 L 300 460" }, duration: 0.6, ease: "none" }, 0.7);
+      tl.to("#ball", { motionPath: { path: "M 300 460 Q 480 -180 660 380" }, duration: 1.3, ease: "power1.out" }, 1.3);
+      tl.fromTo("#tr-in", { strokeDashoffset: +pin.dataset.len }, { strokeDashoffset: 0, duration: 0.6, ease: "none" }, 0.7);
+      tl.fromTo("#tr-out", { strokeDashoffset: +pout.dataset.len }, { strokeDashoffset: 0, duration: 1.3, ease: "power1.out" }, 1.3);
+      tl.fromTo("#fx", { opacity: 0.9, scale: 0.3 }, { opacity: 0, scale: 1.7, duration: 0.6, ease: "power2.out" }, 1.3);
+      tl.fromTo("#b1", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 1.95);
+      tl.fromTo("#f1", { scaleX: 0, transformOrigin: "left center" }, { scaleX: 1, duration: 0.55, ease: "power2.out" }, 2.05);
+      tl.fromTo("#b2", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 2.15);
+      tl.fromTo("#f2", { scaleX: 0, transformOrigin: "left center" }, { scaleX: 1, duration: 0.55, ease: "power2.out" }, 2.25);
+      window.__timelines["clay"] = tl;
+    </script>
+  </body>
+</html>

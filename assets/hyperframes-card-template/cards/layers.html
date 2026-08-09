@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js" integrity="sha384-sG0Hv1tP1lZCk9KQmrIbY/XNwi+OY84GQqhMscbnsoBFqAz8KNCil1kvfL3Hbbk2" crossorigin="anonymous"></script>
+    <style>
+      @font-face { font-family: "Hiragino Sans GB"; src: local("Hiragino Sans GB"); }
+      @font-face { font-family: "PingFang SC"; src: local("PingFang SC"); }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: #000; }
+      body { font-family: "Hiragino Sans GB", "PingFang SC", sans-serif; color: #f8f6f3; font-weight: 600; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      #bg { position: absolute; inset: 0;
+        background: radial-gradient(120% 70% at 50% -10%, rgba(196,86,58,0.16), rgba(0,0,0,0) 55%),
+                    linear-gradient(180deg, #201310 0%, #140c08 45%, #0a0605 100%); }
+      .clip { position: absolute; inset: 0; }
+      #headline { position: absolute; top: 300px; width: 100%; text-align: center;
+        font-size: 66px; text-shadow: 0 3px 10px rgba(0,0,0,0.55); opacity: 0; }
+      #headline .g { color: #e2bc68; }
+      #stack { position: absolute; left: 180px; top: 470px; width: 560px; height: 840px; }
+      .layer { position: absolute; left: 0; width: 560px; border-radius: 6px; opacity: 0; }
+      .llab { position: absolute; left: 780px; font-size: 38px; white-space: nowrap; opacity: 0; }
+      .llab small { display: block; font-size: 28px; color: #d8cdc0; font-weight: 600; }
+      .lline { position: absolute; height: 3px; background: rgba(255,255,255,0.35); opacity: 0; }
+      /* depth bracket */
+      #bracket { position: absolute; left: 130px; top: 470px; width: 20px; height: 840px;
+        border-left: 5px solid #e2bc68; border-top: 5px solid #e2bc68; border-bottom: 5px solid #e2bc68;
+        opacity: 0; }
+      #depth { position: absolute; left: 40px; top: 850px; font-size: 40px; color: #e2bc68;
+        transform: rotate(-90deg); transform-origin: center; white-space: nowrap; opacity: 0; }
+      #callout { position: absolute; left: 760px; top: 430px; font-size: 42px; color: #ff8a5e; opacity: 0; }
+      #callout small { display: block; font-size: 28px; color: #d8cdc0; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="layers" data-start="0" data-fps="60"
+         data-width="1080" data-height="1920" data-duration="4.7">
+      <div id="bg"></div>
+      <section id="scene" class="clip" data-start="0" data-duration="4.7" data-track-index="1">
+        <div id="headline">红土场其实是 <span class="g">5 层</span>「千层饼」</div>
+        <div id="stack">
+          <!-- bottom -> top; heights示意非等比 -->
+          <div class="layer" id="ly1" style="top: 620px; height: 220px; background: #4a5560"></div>
+          <div class="layer" id="ly2" style="top: 450px; height: 160px; background: #6a6f75"></div>
+          <div class="layer" id="ly3" style="top: 300px; height: 140px; background: #3a2c22"></div>
+          <div class="layer" id="ly4" style="top: 170px; height: 120px; background: #d9d2c4"></div>
+          <div class="layer" id="ly5" style="top: 148px; height: 14px; background: #c4563a; box-shadow: 0 0 18px rgba(196,86,58,0.8)"></div>
+        </div>
+        <div class="lline" id="ln1" style="left: 740px; top: 1200px; width: 30px"></div>
+        <div class="llab" id="lb1" style="top: 1160px">石块<small>排水</small></div>
+        <div class="lline" id="ln2" style="left: 740px; top: 1000px; width: 30px"></div>
+        <div class="llab" id="lb2" style="top: 962px">碎砾石</div>
+        <div class="lline" id="ln3" style="left: 740px; top: 840px; width: 30px"></div>
+        <div class="llab" id="lb3" style="top: 800px">炉渣<small>保湿</small></div>
+        <div class="lline" id="ln4" style="left: 740px; top: 700px; width: 30px"></div>
+        <div class="llab" id="lb4" style="top: 662px">石灰岩</div>
+        <div id="callout">红砖粉 约2毫米<small>比一枚硬币还薄</small></div>
+        <div id="bracket"></div>
+        <div id="depth">共约80厘米</div>
+      </section>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo("#headline", { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, ease: "power3.out" }, 0.15);
+      const seq = [["#ly1","#ln1","#lb1"],["#ly2","#ln2","#lb2"],["#ly3","#ln3","#lb3"],["#ly4","#ln4","#lb4"]];
+      seq.forEach((g, i) => {
+        const t0 = 0.5 + i * 0.38;
+        tl.fromTo(g[0], { scaleY: 0, opacity: 1, transformOrigin: "bottom center" }, { scaleY: 1, opacity: 1, duration: 0.45, ease: "power2.out" }, t0);
+        tl.fromTo(g[1], { scaleX: 0, opacity: 1, transformOrigin: "left center" }, { scaleX: 1, opacity: 1, duration: 0.25 }, t0 + 0.2);
+        tl.fromTo(g[2], { opacity: 0, x: 16 }, { opacity: 1, x: 0, duration: 0.35, ease: "power2.out" }, t0 + 0.3);
+      });
+      // 顶层红砖粉: 高亮登场 + callout
+      tl.fromTo("#ly5", { scaleY: 0, opacity: 1, transformOrigin: "bottom center" }, { scaleY: 1, opacity: 1, duration: 0.35, ease: "power2.out" }, 2.1);
+      tl.fromTo("#ly5", { scale: 1 }, { scale: 1.06, duration: 0.25, ease: "power1.inOut", repeat: 1, yoyo: true }, 2.45);
+      tl.fromTo("#callout", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.45, ease: "back.out(1.4)" }, 2.55);
+      tl.fromTo("#bracket", { scaleY: 0, opacity: 1, transformOrigin: "top center" }, { scaleY: 1, opacity: 1, duration: 0.5, ease: "power2.inOut" }, 2.95);
+      tl.fromTo("#depth", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 3.35);
+      window.__timelines["layers"] = tl;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js" integrity="sha384-sG0Hv1tP1lZCk9KQmrIbY/XNwi+OY84GQqhMscbnsoBFqAz8KNCil1kvfL3Hbbk2" crossorigin="anonymous"></script>
+    <style>
+      @font-face { font-family: "Hiragino Sans GB"; src: local("Hiragino Sans GB"); }
+      @font-face { font-family: "PingFang SC"; src: local("PingFang SC"); }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: #000; }
+      body { font-family: "Hiragino Sans GB", "PingFang SC", sans-serif; color: #f8f6f3; font-weight: 600; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      #bg { position: absolute; inset: 0;
+        background: radial-gradient(120% 70% at 50% -10%, rgba(196,86,58,0.16), rgba(0,0,0,0) 55%),
+                    linear-gradient(180deg, #201310 0%, #140c08 45%, #0a0605 100%); }
+      .clip { position: absolute; inset: 0; }
+      #headline { position: absolute; top: 320px; width: 100%; text-align: center;
+        font-size: 66px; text-shadow: 0 3px 10px rgba(0,0,0,0.55); opacity: 0; }
+      #headline .g { color: #e2bc68; }
+      /* scale track */
+      #track { position: absolute; left: 120px; top: 890px; width: 840px; height: 18px;
+        border-radius: 9px; background: linear-gradient(90deg, #c4563a, #b8863f 50%, #4c9160); opacity: 0; }
+      .tick { position: absolute; top: 856px; width: 86px; height: 86px; margin-left: -43px;
+        border-radius: 50%; background: #241611; border: 3px solid rgba(255,255,255,0.25);
+        display: flex; align-items: center; justify-content: center; font-size: 40px; opacity: 0; }
+      .tlab { position: absolute; top: 980px; width: 160px; margin-left: -80px; text-align: center;
+        font-size: 32px; color: #d8cdc0; opacity: 0; }
+      /* surface pills that drop onto the scale */
+      .surf { position: absolute; top: 700px; height: 74px; border-radius: 37px;
+        display: flex; align-items: center; padding: 0 30px; font-size: 38px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4); opacity: 0; }
+      .surf small { font-size: 26px; opacity: 0.85; margin-right: 10px; font-weight: 600; }
+      .leg { position: absolute; top: 774px; width: 4px; height: 82px; margin-left: -2px;
+        background: rgba(255,255,255,0.35); opacity: 0; }
+      #note { position: absolute; top: 1160px; width: 100%; text-align: center;
+        font-size: 34px; color: #d8cdc0; opacity: 0; }
+      #ends { position: absolute; left: 120px; top: 1090px; width: 840px; display: flex;
+        justify-content: space-between; font-size: 34px; color: #cbbfae; opacity: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="scale" data-start="0" data-fps="60"
+         data-width="1080" data-height="1920" data-duration="7.8">
+      <div id="bg"></div>
+      <section id="scene" class="clip" data-start="0" data-duration="7.8" data-track-index="1">
+        <div id="headline">ITF 场速分级 <span class="g">1 → 5</span></div>
+        <div id="track"></div>
+        <!-- ticks at 120 + 840*(i-1)/4 -->
+        <div class="tick" id="t1" style="left: 120px">1</div>
+        <div class="tick" id="t2" style="left: 330px">2</div>
+        <div class="tick" id="t3" style="left: 540px">3</div>
+        <div class="tick" id="t4" style="left: 750px">4</div>
+        <div class="tick" id="t5" style="left: 960px">5</div>
+        <div class="tlab" id="l1" style="left: 120px">慢速</div>
+        <div class="tlab" id="l3" style="left: 540px">中速</div>
+        <div class="tlab" id="l5" style="left: 960px">快速</div>
+        <div id="ends"><span>← 更慢</span><span>更快 →</span></div>
+        <!-- surface pills -->
+        <div class="leg" id="leg-clay" style="left: 120px"></div>
+        <div class="surf" id="s-clay" style="left: 60px; background: #c4563a"><small>多数</small>红土 · 1类</div>
+        <div class="leg" id="leg-grass" style="left: 960px"></div>
+        <div class="surf" id="s-grass" style="left: 742px; background: #4c9160"><small>多数</small>草地 · 5类</div>
+        <div class="leg" id="leg-hard" style="left: 645px; top: 664px; height: 222px"></div>
+        <div class="surf" id="s-hard" style="left: 500px; top: 590px; background: #3d7fbf">硬地 · 通常居中</div>
+        <div id="note">同一类别里，具体场地仍有快慢差异</div>
+      </section>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo("#headline", { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, ease: "power3.out" }, 0.15);
+      tl.fromTo("#track", { scaleX: 0, opacity: 1, transformOrigin: "left center" }, { scaleX: 1, opacity: 1, duration: 0.8, ease: "power2.inOut" }, 0.7);
+      tl.fromTo(".tick", { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.7)", stagger: 0.09 }, 1.0);
+      tl.fromTo(".tlab", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 1.5);
+      tl.fromTo("#ends", { opacity: 0 }, { opacity: 0.9, duration: 0.4 }, 1.7);
+      // clay -> grass -> hard, following the narration order
+      tl.fromTo("#s-clay", { y: -90, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, ease: "back.out(1.4)" }, 2.2);
+      tl.fromTo("#leg-clay", { scaleY: 0, opacity: 1, transformOrigin: "top center" }, { scaleY: 1, opacity: 1, duration: 0.35, ease: "power2.out" }, 2.6);
+      tl.fromTo("#s-grass", { y: -90, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, ease: "back.out(1.4)" }, 3.7);
+      tl.fromTo("#leg-grass", { scaleY: 0, opacity: 1, transformOrigin: "top center" }, { scaleY: 1, opacity: 1, duration: 0.35, ease: "power2.out" }, 4.1);
+      tl.fromTo("#s-hard", { y: -90, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, ease: "back.out(1.4)" }, 5.2);
+      tl.fromTo("#leg-hard", { scaleY: 0, opacity: 1, transformOrigin: "top center" }, { scaleY: 1, opacity: 1, duration: 0.35, ease: "power2.out" }, 5.6);
+      tl.fromTo("#note", { opacity: 0, y: 20 }, { opacity: 0.95, y: 0, duration: 0.5, ease: "power2.out" }, 6.3);
+      window.__timelines["scale"] = tl;
+    </script>
+  </body>
+</html>

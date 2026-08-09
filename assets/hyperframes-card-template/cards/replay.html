@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js" integrity="sha384-sG0Hv1tP1lZCk9KQmrIbY/XNwi+OY84GQqhMscbnsoBFqAz8KNCil1kvfL3Hbbk2" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/MotionPathPlugin.min.js" integrity="sha384-bRevQK3DiusS1XALpRyWfXNcSVNuNxBOUk12Tk44IsnfepFlBwFe8h/82zWbDxqi" crossorigin="anonymous"></script>
+    <style>
+      @font-face { font-family: "Hiragino Sans GB"; src: local("Hiragino Sans GB"); }
+      @font-face { font-family: "PingFang SC"; src: local("PingFang SC"); }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: #000; }
+      body { font-family: "Hiragino Sans GB", "PingFang SC", sans-serif; color: #f8f6f3; font-weight: 600; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      #bg { position: absolute; inset: 0;
+        background: radial-gradient(120% 70% at 50% -10%, rgba(196,86,58,0.16), rgba(0,0,0,0) 55%),
+                    linear-gradient(180deg, #201310 0%, #140c08 45%, #0a0605 100%); }
+      .clip { position: absolute; inset: 0; }
+      #headline { position: absolute; top: 290px; width: 100%; text-align: center;
+        font-size: 62px; text-shadow: 0 3px 10px rgba(0,0,0,0.55); opacity: 0; }
+      .panel { position: absolute; left: 70px; width: 940px; height: 300px;
+        border-radius: 24px; background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(255,255,255,0.08); opacity: 0; }
+      #p-clay { top: 420px; } #p-hard { top: 748px; } #p-grass { top: 1076px; }
+      .spine { position: absolute; left: 0; top: 0; bottom: 0; width: 14px; border-radius: 24px 0 0 24px; }
+      .pname { position: absolute; left: 42px; top: 20px; font-size: 46px; }
+      .ptag { position: absolute; right: 26px; top: 26px; font-size: 28px; color: #d8cdc0; }
+      .stage { position: absolute; left: 28px; top: 92px; width: 884px; height: 170px; }
+      .stage svg { position: absolute; inset: 0; overflow: visible; }
+      .ground { position: absolute; left: 0; right: 0; top: 148px; height: 3px; background: rgba(255,255,255,0.24); }
+      .ball { position: absolute; left: 0; top: 0; width: 26px; height: 26px; margin: -13px;
+        border-radius: 50%; opacity: 0;
+        background: radial-gradient(circle at 35% 30%, #f4ff86, #d9ec2f 65%, #aebd1e);
+        box-shadow: 0 3px 8px rgba(0,0,0,0.45); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="replay" data-start="0" data-fps="60"
+         data-width="1080" data-height="1920" data-duration="3.9">
+      <div id="bg"></div>
+      <section id="scene" class="clip" data-start="0" data-duration="3.9" data-track-index="1">
+        <div id="headline">同一颗球，三种脾气</div>
+        <div class="panel" id="p-clay">
+          <div class="spine" style="background: #c4563a"></div>
+          <div class="pname">红土</div><div class="ptag">高 · 慢</div>
+          <div class="stage"><div class="ground"></div>
+            <svg viewBox="0 0 884 170">
+              <path d="M -10 20 L 300 148 Q 480 -60 660 122" fill="none" stroke="#e0714e" stroke-width="5" stroke-linecap="round" stroke-dasharray="6 12" opacity="0.85" />
+            </svg>
+            <div class="ball" id="ball-clay"></div>
+          </div>
+        </div>
+        <div class="panel" id="p-hard">
+          <div class="spine" style="background: #3d7fbf"></div>
+          <div class="pname">硬地</div><div class="ptag">规则 · 中速</div>
+          <div class="stage"><div class="ground"></div>
+            <svg viewBox="0 0 884 170">
+              <path d="M -10 40 L 300 148 Q 520 16 740 128" fill="none" stroke="#5f9bd6" stroke-width="5" stroke-linecap="round" stroke-dasharray="6 12" opacity="0.85" />
+            </svg>
+            <div class="ball" id="ball-hard"></div>
+          </div>
+        </div>
+        <div class="panel" id="p-grass">
+          <div class="spine" style="background: #4c9160"></div>
+          <div class="pname">草地</div><div class="ptag">低 · 快</div>
+          <div class="stage"><div class="ground"></div>
+            <svg viewBox="0 0 884 170">
+              <path d="M -10 76 L 300 148 Q 560 104 860 134" fill="none" stroke="#6fb885" stroke-width="5" stroke-linecap="round" stroke-dasharray="6 12" opacity="0.85" />
+            </svg>
+            <div class="ball" id="ball-grass"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+    <script>
+      gsap.registerPlugin(MotionPathPlugin);
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo("#headline", { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 0.1);
+      tl.fromTo(".panel", { x: -60, opacity: 0 }, { x: 0, opacity: 1, duration: 0.45, ease: "power3.out", stagger: 0.12 }, 0.25);
+      const SURF = [
+        { id: "clay",  tin: 0.55, tout: 1.10, pin: "M -10 20 L 300 148", pout: "M 300 148 Q 480 -60 660 122" },
+        { id: "hard",  tin: 0.45, tout: 0.80, pin: "M -10 40 L 300 148", pout: "M 300 148 Q 520 16 740 128" },
+        { id: "grass", tin: 0.35, tout: 0.50, pin: "M -10 76 L 300 148", pout: "M 300 148 Q 560 104 860 134" },
+      ];
+      // 同步重放 ×2: 三球同发, 差异一眼可读
+      for (const t0 of [1.1]) {
+        for (const s of SURF) {
+          tl.set(`#ball-${s.id}`, { opacity: 1 }, t0);
+          tl.to(`#ball-${s.id}`, { motionPath: { path: s.pin }, duration: s.tin, ease: "none" }, t0);
+          tl.to(`#ball-${s.id}`, { motionPath: { path: s.pout }, duration: s.tout, ease: "power1.out" }, t0 + s.tin);
+        }
+      }
+      window.__timelines["replay"] = tl;
+    </script>
+  </body>
+</html>
