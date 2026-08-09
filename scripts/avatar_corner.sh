@@ -26,11 +26,21 @@ echo "=== avatar V=${V}s seg=${SEGDUR}s off=${OFF} $(date +%H:%M:%S) ==="
 # 1. 模板段 (720x1280) — 音频更长时给全段, 引擎内部循环
 ffmpeg -v error -ss "$OFF" -t "$SEGDUR" -i "$AS/template2_720.mp4" \
   -c:v libx264 -crf 18 -preset fast -an -y "$TMP/seg.mp4"
+# 1.5 驱动音频静默门控 (2026-08-09, 治"没说话嘴还动"): RMS<-40dB 持续>=120ms 的窗口清零,
+#     wav2lip 不再被 TTS 底噪/呼吸尾音/室内底噪驱动。只影响对嘴驱动副本 — 成片音轨在第5步
+#     从 $BASE 原样 copy, 听感零变化。GATE_LIP=0 跳过; 阈值 GATE_DB / GATE_MIN_MS 可调。
+#     注意这只治一半: 模板素材本身张嘴的时刻, 静默输出仍会跟着微张(下巴在重绘框外泄露口型)
+#     — 根治靠闭嘴聆听状态的模板, 见 docs/数字人模板录制指南.md「嘴型」条。
+DRV="$AM"
+if [ "${GATE_LIP:-1}" = "1" ]; then
+  "$W/venv/bin/python" "$(cd "$(dirname "$0")" && pwd)/gate_lip_audio.py" "$AM" "$TMP/am_gated.wav"
+  DRV="$TMP/am_gated.wav"
+fi
 # 2. 对嘴 (~8-9min/分钟音频, CPU) — 必须 cd 进引擎目录: 人脸检测模型是相对路径 ./insightface_func/models
 cd "$W"
 "$W/venv/bin/python" -W ignore "$W/inference_onnxModel.py" \
   --checkpoint_path "$W/checkpoints/wav2lip_256.onnx" \
-  --face "$TMP/seg.mp4" --audio "$AM" --outfile "$TMP/avraw.mp4" --pads 0 10 0 0
+  --face "$TMP/seg.mp4" --audio "$DRV" --outfile "$TMP/avraw.mp4" --pads 0 10 0 0
 # 3. 裁成 720x720 方形 (胸上构图, y=193 对准脸部)
 ffmpeg -v error -i "$TMP/avraw.mp4" -vf "crop=720:720:0:193" -an \
   -c:v libx264 -crf 16 -preset fast -y "$TMP/avsq.mp4"
