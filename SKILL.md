@@ -7,10 +7,35 @@ description: >-
   footage approval gates, identity-verified sourcing, IndexTTS-2 narration in the user's voice,
   word-exact captions, low-memory rendering, scene previews, subject/audio/timeline QC, branded
   ending, environment-routed AI dual covers, publish copy, and chapters. Trigger even when the user only gives
-  a topic and approximate duration.
+  a topic and approximate duration. Also covers 网球练习复盘 — the user's OWN on-court footage analysed
+  coach-style into a summary post (no narration; action-frame cover rendered locally) — trigger on
+  「发这种打球视频 / 复盘我的练习视频 / 把这段拉球发了」.
 ---
 
 # Vertical Commentary Video Builder
+
+## 视频类型分流 — 开工前先判断走哪条线
+
+| 类型 | 特征 | 走哪套 |
+|---|---|---|
+| **人物专题 / 话题片**(默认) | 讲别人的故事,素材来自网络,要克隆声口播 | 本文下面的全套流程(脚本门 → 素材门 → TTS → 字幕 → 渲染) |
+| **网球练习复盘**(2026-08-17 新增) | **用户自己打球的实拍**,教练视角找问题,**不做口播**,封面用视频里的动作帧本地拼 | **`references/tennis-practice-review.md`**,只复用收尾环节 |
+
+**网球练习复盘触发词**:「发这种打球视频」「复盘我的练习视频」「把这段拉球发了」,或用户直接甩来
+自己的比赛/练习录像(常见 SwingVision 导出,右上角带数据覆盖层)。这条线的五步:
+
+1. **分析**:读 SwingVision 逐拍信息框 + 抽技术动作帧 → 出教练结论。
+   ⚠ **每一分的结局必须问用户确认,不要从落点小地图推断**(2026-08-17 实测 3 分错 2 分)。
+2. **封面**:底图只能用**正手拉拍 / 反手拉拍 / 发球击球瞬间**三种动作帧之一,**必须保留对手在画面里**;
+   `scripts/make_covers_practice.py` 本地渲染统一版式(胶囊=视频类型「网球练习」+ 主标 + 金色副标)。
+   **不要用 GPT 生成封面** — 用户 2026-08-17 否决:GPT 会重绘人物并把对手裁掉。
+3. **文案**:总结式 —「问题现象 + 怎么改」×3,**禁止逐分复述,禁止写拍数和球速**(用户两次明确)。
+4. **成片**:`finalize_ending.py` 一步做完**升格 1080p60 + 品牌片尾 + 片尾语音**(在 CRF 12 母版上做)。
+5. **发布**:走 `publish-xhs-douyin`。
+
+细则(选帧硬条件、版式逐像素规格、文案结构、踩过的坑)→ `references/tennis-practice-review.md`。
+
+---
 
 Produces a ready-to-post **9:16 / 1080×1920** narrated video: real footage centred over a
 **dark, heavily-blurred moving fill** of itself, **word-exact** burned-in Chinese captions, headline
