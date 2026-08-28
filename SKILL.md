@@ -450,7 +450,10 @@ python build/finalize_ending.py "$PROJ/<OUTPUT_NAME>"
 # 6e. 右下角口播数字人 (user standing rule 2026-08-03, 伊埃拉起默认加) — wav2lip-onnx-256:
 caffeinate -i nice -n 15 bash build/avatar_corner.sh "$PROJ/<OUTPUT_NAME>" build/audio_master.wav 0
 ```
-**数字人 (6e)**: 用户真人模板 + 克隆声口播 → 对嘴 → **186px** 圆头像叠右下角 (834,1634 —
+**数字人 (6e)**: 用户真人模板 + 克隆声口播 → 对嘴 → **圆内画面自动提亮** (2026-08-27 用户 standing
+rule: 模板偏暗, eq brightness=0.09/contrast=1.06/saturation=1.05 让脸更清楚, 已内建进
+avatar_corner.sh, env AV_BRIGHT/AV_CONTRAST/AV_SAT 可调; 封面上的数字人头像同理提亮, PIL ×1.22) →
+**186px** 圆头像叠右下角 (834,1634 —
 2026-08-03 用户按手机屏幕圆角/进度条校准, **勿改回旧的 280px/(772,1616)**; 不压字幕带)。
 脚本自含全部路径/参数注释 — 引擎在 /Volumes/Storage/wav2lip-onnx-256,
 模板+遮罩在 /Volumes/Storage/avatar-template/assets (模板 126.5s, 音频更长时引擎自动循环帧,
@@ -578,6 +581,11 @@ harness REDACT —— 这三条确实不通, 但**不要**因此断言"图取不
    posts are gold) / a full-res frame from own footage. Prefer 竖版, high-emotion 夺冠特写 (捧杯/举杯/
    泪目). Identity-verify via the rule-3 ladder. Download: IG scontent → hidden-form POST the signed URL
    to `scripts/cover_bridge.py` (server-side fetch works for IG, unlike oaiusercontent).
+   **⚠ 人物故事参考图两条硬性要求 (user rule 2026-08-10, 伊埃拉深度分析复盘):**
+   ① **必须能看清主人公的脸** — 正脸/近正脸、清晰、无遮挡; 侧脸低头、被奖杯/话筒挡脸、
+     人物太小的帧一律不合格 (首版用了捧杯走场帧, 脸偏小侧向, 用户换成正脸挥手照);
+   ② **必须是近期照片** — 近一年内/当前赛季形象 (发型、球衣、赞助商都在变, 旧照会显得不像本人)。
+   两条不满足时继续找, 不要拿"高情绪但看不清脸"或"清楚但过时"的图凑数; 用户主动提供的照片优先。
 2. **Codex 路径:** 直接调用内置 `image_gen` 编辑 reference image。Prompt 必须明确锁住人物的脸型、
    五官、肤色、发型、体型、原照片服装/姿势与场景, 只允许为适应版式做背景延展和文字设计。生成后
    全分辨率比对脸、服装和手; 人物变成“像她的另一个人”就定点编辑/重生, 绝不交付。
