@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "Hiragino Sans GB";
+        src: local("Hiragino Sans GB");
+      }
+      @font-face {
+        font-family: "PingFang SC";
+        src: local("PingFang SC");
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px; height: 1920px; overflow: hidden;
+        background: #0a0605;
+      }
+      body {
+        font-family: "Hiragino Sans GB", "PingFang SC", sans-serif;
+        font-weight: 600;
+      }
+      #root { position: relative; width: 1080px; height: 1920px; }
+      .bg {
+        position: absolute; inset: 0;
+        background:
+          radial-gradient(120% 55% at 50% 0%, rgba(196, 86, 58, 0.16) 0%, rgba(196, 86, 58, 0) 62%),
+          linear-gradient(180deg, #201310 0%, #0a0605 100%);
+      }
+      /* 关键内容全部落在 y 260-1400: 顶部让给场景 chip, 底部让给字幕带 */
+      .stage { position: absolute; left: 90px; top: 380px; width: 900px; }
+      .rule { width: 320px; height: 8px; border-radius: 4px; background: #e2bc68; transform-origin: left center; }
+      .kicker { margin-top: 34px; font-size: 40px; color: #d8ccc0; letter-spacing: 2px; }
+      .row {
+        position: relative; margin-top: 40px; height: 190px;
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 24px;
+        display: flex; align-items: center; padding: 0 44px 0 62px;
+      }
+      .spine {
+        position: absolute; left: 0; top: 0; width: 14px; height: 100%;
+        border-radius: 24px 0 0 24px; background: #c4563a;
+      }
+      .label { font-size: 44px; color: #f8f6f3; }
+      .val { margin-left: auto; font-size: 84px; color: #e2bc68; letter-spacing: 1px; }
+      .val small { font-size: 44px; color: #d8ccc0; margin-left: 8px; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="2.473"
+         data-width="1080" data-height="1920">
+      <div id="stats-card" class="clip" data-start="0" data-duration="2.473" data-track-index="0">
+        <div class="bg"></div>
+        <div class="stage">
+          <div class="rule" id="rule"></div>
+          <div class="kicker" id="kicker">多伦多夺冠之后</div>
+
+          <div class="row" id="r1">
+            <div class="spine"></div>
+            <div class="label">生涯单打冠军</div>
+            <div class="val"><span id="n1">0</span><small>冠</small></div>
+          </div>
+
+          <div class="row" id="r2">
+            <div class="spine"></div>
+            <div class="label">WTA1000 冠军</div>
+            <div class="val"><span id="n2">0</span><small>个</small></div>
+          </div>
+
+          <div class="row" id="r3">
+            <div class="spine"></div>
+            <div class="label">决赛战绩</div>
+            <div class="val"><span id="n3">0</span><small>胜 5 负</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo("#rule", { scaleX: 0, opacity: 1 }, { scaleX: 1, opacity: 1, duration: 0.45, ease: "power3.out" }, 0);
+      tl.fromTo("#kicker", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 0.08);
+
+      const rows = ["#r1", "#r2", "#r3"];
+      rows.forEach(function (sel, i) {
+        tl.fromTo(sel, { opacity: 0, y: 30 },
+          { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.16 + i * 0.2);
+      });
+
+      // 数字滚动: 确定性 (无随机/无时钟), 末段留稳定可读态
+      const counters = [
+        { el: "#n1", to: 26, at: 0.26 },
+        { el: "#n2", to: 12, at: 0.46 },
+        { el: "#n3", to: 26, at: 0.66 }
+      ];
+      counters.forEach(function (c) {
+        const o = { v: 0 };
+        tl.to(o, {
+          v: c.to, duration: 0.6, ease: "power2.out",
+          onUpdate: function () {
+            document.querySelector(c.el).textContent = String(Math.round(o.v));
+          }
+        }, c.at);
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

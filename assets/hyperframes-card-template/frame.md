@@ -43,4 +43,5 @@
 - `cards/layers.html` — 剖面层叠卡（自下而上逐层生长 + 顶层高亮脉冲 + 侧标注 + 金色深度括号）。首用：红土五层结构 P4。
 - `cards/clay.html` / `cards/grass.html` / `cards/hard.html` — 单面板弹跳演示卡（大轨迹 MotionPath + 描线留存 + 落点 FX + 双数据条；三张互为参数化变体，clay 为母版）。首用：P5/P7/P8。
 - `cards/replay.html` — 三面板同步重放卡（轨迹预绘 + 三球同发对比，无描线动画）。首用：收尾开放问题 P9。
+- `cards/stats-rows.html` — 数字统计行条卡（金色分隔线 + kicker + 三行 panel 行条 + 确定性数字滚动 count-up）。首用：斯瓦泰克多伦多夺冠 S10 生涯战绩（2026-08-13）。
 - 以上站内版均已按规矩让位字幕带/chip 区；时长按念白槽位改根节点 data-duration 后重渲染即可复用。
