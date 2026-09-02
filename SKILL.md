@@ -447,19 +447,26 @@ python build/assemble_ambient.py build/audio_master.wav 0.15    # TTS voice mast
 # (voice-only render.py assemble / assemble-voice = drafts only, not the deliverable)
 # 6d. ALWAYS finish with the branded ending + 1080p60 re-encode (rule 11):
 python build/finalize_ending.py "$PROJ/<OUTPUT_NAME>"
-# 6e. 右下角口播数字人 (user standing rule 2026-08-03, 伊埃拉起默认加) — wav2lip-onnx-256:
+# 6e. 右下角口播数字人 (user standing rule 2026-08-03, 伊埃拉起默认加; 2026-09-02 起默认=无边框贴纸样式) — wav2lip-onnx-256:
 caffeinate -i nice -n 15 bash build/avatar_corner.sh "$PROJ/<OUTPUT_NAME>" build/audio_master.wav 0
 ```
-**数字人 (6e)**: 用户真人模板 + 克隆声口播 → 对嘴 → **圆内画面自动提亮** (2026-08-27 用户 standing
-rule: 模板偏暗, eq brightness=0.09/contrast=1.06/saturation=1.05 让脸更清楚, 已内建进
-avatar_corner.sh, env AV_BRIGHT/AV_CONTRAST/AV_SAT 可调; 封面上的数字人头像同理提亮, PIL ×1.22) →
-**186px** 圆头像叠右下角 (834,1634 —
-2026-08-03 用户按手机屏幕圆角/进度条校准, **勿改回旧的 280px/(772,1616)**; 不压字幕带)。
-脚本自含全部路径/参数注释 — 引擎在 /Volumes/Storage/wav2lip-onnx-256,
-模板+遮罩在 /Volumes/Storage/avatar-template/assets (模板 126.5s, 音频更长时引擎自动循环帧,
+**数字人 (6e) — 默认贴纸样式 (2026-09-02 用户拍板, 老德美网一轮游 2026-08-31 首用)**: 用户真人模板 + 克隆声
+口播 → 对嘴 → 720×960 上半身取景 → RVM **透明抠像 + 14px 白描边** (亮度提亮 brightness+0.09/contrast×1.06
+已烘进 `matte_sticker.py`, 与封面头像 PIL ×1.22 同一规矩) → 缩到 **270×360 直接贴在右下角 (790,1568)**,
+躯干贴底出画; **不裁圆、不加白框、不加底色卡** (用户 2026-09-01 原话: "不要任何背景边框, 直接加到视频右下角,
+就像老德视频那样" — 我做过一版白色方框被当场否决)。旧的 186px 圆头像+描边环版本保留为
+`avatar_corner_circle.sh`, 只在用户点名要圆框时用。位置/尺寸/描边可用 env STICKER_X/Y/W/H/STROKE 微调。
+脚本自含全部路径/参数注释 — 引擎在 /Volumes/Storage/wav2lip-onnx-256 (需 rvm_mobilenetv3_fp32.onnx),
+模板在 /Volumes/Storage/avatar-template/assets (模板 126.5s, 音频更长时引擎自动循环帧,
 **不要自己做倒放回文** — ffmpeg reverse 整段进内存会崩 16G 机器)。耗时 ~8-9min/分钟口播 (CPU),
 必须 caffeinate 包着跑防睡眠断工。数字人只覆盖口播段 0..V, 结尾卡保持无头像。头像盖在战绩卡上
 是正常效果, 预览时照常检查。
+**⚠ 两个 2026-09-01 实踩已内建进脚本, 别再犯**: ① wav2lip 引擎内部拼 ffmpeg 命令不给路径加引号 —
+项目目录名含空格 ("Kids Day Volunteer") 时 `--outfile` 被截断成 `.../Kids`, 整步静默失败 → 工作目录固定在
+无空格路径 `/Volumes/Storage/tmp/avatar_<hash>` (env AVATAR_TMP 可覆盖), BASE/AM 先转绝对路径再 cd 引擎目录;
+② 合成滤镜里只要有 `-loop 1` PNG 这种无限流, ffmpeg 会在主输入 EOF 后永不终止 (进度停在 V−1s, 是编码器
+lookahead 的假象) → 贴纸版不用 PNG 输入, 贴纸 mov 比 V 短的 ~0.1s 用 `tpad=stop_mode=clone` 补齐, 输出侧 `-t V`
+收口; 若必须用 PNG, 给它输入侧 `-loop 1 -t <比V长>` 变成有限流并在 overlay 上加 `shortest=1`。
 **静默段嘴动治理 (2026-08-09 A/B 实测, 用户已拍板为默认做法)**: avatar_corner 现默认对驱动音频
 做静默门控 (`gate_lip_audio.py`, RMS<-40dB≥120ms 清零, GATE_LIP=0 关) — TTS 底噪/呼吸/
 insert_pauses 底噪不再驱动嘴唇; 成片音轨不受影响。**全片复跑验证 (场地弹跳 54s/32 段清零):
@@ -497,8 +504,9 @@ names**, the win/trophy is YOUR player, the poster. For recorded takes, sync-spo
    walk, celebration): full-res frames at BOTH ends of the window; confirm subject via the rule-3
    escalation ladder (brand logo > kit construction > scorebug), not colour alone. A window can start
    on your player and end on the opponent after an in-window camera cut — probe the last second.
-5b. **数字人版三帧抽查** (有 6e 时) — 中段一帧 (圆圈在+嘴型自然)、口播结束前 1s 一帧 (圆圈仍在)、
-   结尾卡一帧 (圆圈已消失); 数字人版时长必须 = 原成片时长 (±1帧)。加上上面的音轨空洞自检一起跑。
+5b. **数字人版三帧抽查** (有 6e 时) — 中段一帧 (贴纸在右下角、白描边完整、嘴型自然、无任何方框/圆框/底色)、
+   口播结束前 1s 一帧 (贴纸仍在)、结尾卡一帧 (贴纸已消失); 数字人版时长必须 = 原成片时长 (±1帧 — 贴纸 mov
+   比口播短 ~0.1s 会让 partA 少 6 帧, 脚本已用 tpad 兜底, 仍要读回 nb_frames 核对)。加上上面的音轨空洞自检一起跑。
 5. **Re-scan after EVERY duration change** — re-recording even ONE scene's voice changes all montage
    slice lengths and shifts every window: after any re-assembly, re-extract frames and repeat checks
    1+4 on the shifted windows. A full-screen "COACH" title card drifted into frame TWICE this way
