@@ -1,0 +1,21 @@
+{
+  "_doc": "封面本人胸像的衣柜: cover_outfit.py 每期从这里挑一件(避开最近穿过的), 描述直接写进 GPT 补全半身的 prompt。tags 用于按季节过滤; 想加新衣服直接追加条目。",
+  "outfits": [
+    {"id": "white-tee",        "zh": "白色短袖圆领T恤",                                  "tags": ["spring", "summer", "autumn", "basic"]},
+    {"id": "charcoal-tee",     "zh": "炭灰色短袖圆领T恤",                                "tags": ["spring", "summer", "autumn", "basic"]},
+    {"id": "sky-tee",          "zh": "天蓝色短袖T恤",                                    "tags": ["summer"]},
+    {"id": "forest-tee",       "zh": "墨绿色短袖T恤",                                    "tags": ["spring", "summer", "autumn"]},
+    {"id": "clay-tee",         "zh": "砖红色(陶土红)短袖T恤",                             "tags": ["spring", "summer", "autumn", "brand"]},
+    {"id": "navy-polo",        "zh": "藏青色短袖Polo衫, 领口扣好",                        "tags": ["spring", "summer", "autumn", "tennis"]},
+    {"id": "tennis-polo",      "zh": "白色网球Polo衫, 领边和袖口有细细的砖红色条纹",         "tags": ["spring", "summer", "tennis"]},
+    {"id": "stripe-shirt",     "zh": "蓝白细条纹短袖衬衫, 扣子扣好",                       "tags": ["summer"]},
+    {"id": "oxford-shirt",     "zh": "浅蓝色牛津纺长袖衬衫, 袖子挽到小臂",                  "tags": ["spring", "autumn"]},
+    {"id": "denim-shirt",      "zh": "浅色水洗牛仔衬衫, 袖子挽起",                         "tags": ["spring", "autumn"]},
+    {"id": "cream-cardigan",   "zh": "米白色针织开衫, 内搭白色T恤",                        "tags": ["spring", "autumn"]},
+    {"id": "khaki-jacket",     "zh": "浅卡其色轻薄夹克, 内搭白色T恤",                       "tags": ["spring", "autumn"]},
+    {"id": "grey-hoodie",      "zh": "浅灰色连帽卫衣, 帽子放在背后不戴",                    "tags": ["autumn", "winter"]},
+    {"id": "black-crew-ls",    "zh": "黑色圆领长袖运动上衣",                              "tags": ["autumn", "winter", "tennis"]},
+    {"id": "navy-quarter-zip", "zh": "藏青色四分之一拉链运动上衣, 拉链拉到胸口",            "tags": ["autumn", "winter", "tennis"]},
+    {"id": "olive-overshirt",  "zh": "橄榄绿色衬衫式外套, 内搭白色T恤",                    "tags": ["autumn", "winter"]}
+  ]
+}

@@ -563,16 +563,53 @@ only the 【】 slots vary per video:
 
 **封面选型 — 按内容类型选,不要一律套人物模板 (user rule 2026-07-22):**
 - **人物专题**(单一主角的故事)→ 上面的四区冻结模板原样用(胶囊+主标+副标+人名)。
-- **话题片/群像/盘点**(如「NCAA 的魔力」这类多人主题)→ **多位主角头像特写拼版**(2-4 人竖条并排,
-  人脸取自已验证身份的素材帧或官方照片),**只保留主标+副标 — 不要「网球故事」胶囊、不要人名**,
-  字体可以换(现代粗黑体等)。拼版自己合成好再注入 GPT(留出标题头部空间、避开路人/新闻条;
-  `ffmpeg -map_metadata -1` 剥掉 XMP 再 b64 分块注入)。
+- **话题片/示意图/盘点/系列**(讲道理、讲数据、讲结构的片子)→ **默认走下面的「浅色卡通插画 + 本人胸像」
+  格式**(2026-09-04 用户拍板),**只保留主标+副标 — 不要「网球故事」胶囊、不要人名**,字体用现代粗黑体。
+- **群像**(如「NCAA 的魔力」这类以几位真实球员为主角的多人主题)→ 仍可用**多位主角头像特写拼版**(2-4 人竖条并排,
+  人脸取自已验证身份的素材帧或官方照片),同样只保留主标+副标。拼版自己合成好再注入 GPT(留出标题头部空间、
+  避开路人/新闻条;`ffmpeg -map_metadata -1` 剥掉 XMP 再 b64 分块注入)。用户没点名时先给两个方案让他选。
 - GPT 项目会惯性沿用老模板:prompt 必须显式写「这期不要胶囊、不要人名」;若它仍套错,不要重新生成,
   用「基于你上一张生成的封面图修改:…」来纠正(重出图会连底图一起换掉)。
 
+**默认封面格式 — 浅色卡通插画 + 本人胸像贴左下 (2026-09-04 用户拍板, 网球奖金金字塔首用, 两版都通过):**
+三段都在 Web GPT 出图 + 本地合成 (Codex 环境用 `image_gen` 出同样的图), 顺序不能颠倒 —— 先有无人物底图, 再补人:
+① **插画底图 (不带人物)**: 竖版一条 prompt, 横版另起一条**重新构图** (禁互裁):
+  「浅色卡通插画风格, 浅奶油色底, 明快柔和的配色; 画面主体是【本片核心图形, 如: 分层的网球金字塔, 塔尖一张
+  14万美元支票和奖杯】; 主标题「【主标 ≤8字】」用现代粗黑体深色字, 其下副标题「【副标 ≤12字】」金黄色;
+  竖版3比4: 文字在画面上半部分, 图形在下半部分, **左下角留出约 1/4 画宽 × 1/3 画高的空白** (贴本人胸像用);
+  不要胶囊、不要人名, 没有其他文字/水印/logo, 所有汉字逐字准确。」横版 4:3 = 文字左、图形右, 左下角同样留空。
+  经 `cover_bridge.py` 取回 `final/covers/cover_v_raw.png` / `cover_h_raw.png` (GPT 出 1086×1448 / 1448×1086,
+  比例已对; 桥用 `python3 build/cover_bridge.py final/covers` 起, 取回法见下「成图取回本地」) → 逐字校验标题后再进 ②。
+  尺寸不用手动处理: ③ 的脚本会把 raw 等比缩放/居中裁到 1242×1656 / 1440×1080, 并存成 **`final/covers/
+  封面图-竖3x4_无头像.jpg` / `封面图-横4x3_无头像.jpg`** —— 这两张是唯一权威底图, 永远保留 (重贴胸像/换衣服只重跑 ②③);
+  换了新底图要加 `--refresh-backup` 覆盖旧备份。主标 ≤8 字、副标 ≤12 字按本格式算, 不套四区模板的 ≤6/≤10。
+② **本人半身形象 — 衣服每期轮换**: 项目根跑 `python3 build/cover_outfit.py --project <项目名>` (脚本随步骤 3 的
+  `cp scripts/* build/` 已在项目里; 没拷就用 `~/.claude/skills/vertical-commentary-video/scripts/` 绝对路径) → 按当月季节从
+  skill 的 `assets/cover-wardrobe.json` 挑一件最近 6 期没穿过的, 记进 `$PERSONAL_ASSETS/cover_outfit_history.json`, 并打印
+  **完整 prompt — 原样发送, 不要自己改写** (同项目重跑复用同一件, 换衣服加 `--renew`; 用户点名衣服先 `--list` 看衣柜再
+  `--pick <id|中文关键字>`, 关键字撞多件会列出候选; 加新衣服往 json 追加 `{id, zh, tags:[季节…]}`)。
+  参考照 **`$COVER_FACE_REF`** (默认 `$PERSONAL_ASSETS/cover_face_ref.jpg`, personal.env 配置; 本人正脸白底抠像, 制作见
+  `docs/ONBOARDING.md` 第2步) 用 **MODE A 第3步的 window.name 接力**贴进 GPT —— 下文「示意图类不要底图注入」说的是
+  插画底图不注入照片, 本人参考照仍然要传 —— 然后发打印出的 prompt (核心: 完全保留这张脸 → 补全肩膀双臂腰部以上 →
+  四周留白 → 穿【衣服】→ 纯白背景 → 竖版 3:4)。取回存 `final/covers/upper_body_raw.png`。**先与参考照比脸**: 像"另一个
+  相似的人"或被美化 → 「基于上一张修改: 脸换回参考照, 其余不变」, 不要重出。
+③ **合成**: 项目根跑
+  `python3 build/cover_bust.py --figure final/covers/upper_body_raw.png --v final/covers/cover_v_raw.png --h final/covers/cover_h_raw.png`
+  (第二次起 `--v/--h` 换成 `_无头像.jpg`; 只补横版就只给 `--h`)
+  → macOS Vision 抠像 (skill `scripts/figure_tool.swift`, 首次自动 swiftc, 需 Xcode CLT) → 按脸框自动裁**"胸部及以上"** (胸线 = 脸底 +
+  1.22×脸高, 拍板样张反算) → 7px 奶油色描边 → **左下角贴底** (竖版人物高 620px @x=30, 横版 470px @x=40) →
+  `封面图-竖3x4.jpg` / `封面图-横4x3.jpg` 写到项目根并同步 `final/covers/`。裁高手动改 `--chest-y`/`--chest-frac`,
+  大小改 `--v-height/--h-height`, 靠右 `--anchor right`。
+  **缩图 Read 复查 (必做)**: 脸是本人; 描边完整无断; 胸像**不压主标/副标/核心图形** (压到 → 缩 height 或让 GPT
+  「基于上一张修改: 左下角留空」重排底图); 人物底边贴底不悬空; 两版尺寸读回正确。
+踩过的坑 (2026-09-04): 直接裁参考照的肩/手臂贴上去有"两边被切掉"感 → 用户否决, 必须让 GPT 补全整个上半身再本地裁;
+"半身只到胸、放大"是拍板构图 (腰以上整身贴上去太小); 参考照必须是正脸+白底抠像, GPT 才会原样保脸;
+Vision 对 GPT 白底图抠得很干净 (instances=1), 真实杂背景照片要先看 alpha bbox 是否只框到人。
+
 **系列/示意图类封面 — 仍按运行环境分流生成 (2026-08-04):**
-封面主体是图表/示意图(非真人照片)时, **不要走 MODE A 的底图注入** —— 把版式和每张的图形内容用文字描述清楚,
-Codex 用内置 Image 2 / `image_gen`; Claude 在 Web GPT 中用一条 prompt 生成整套风格统一的封面。
+封面主体是图表/示意图(非真人照片)时, **底图不走 MODE A 的照片注入** —— 把版式和每张的图形内容用文字描述清楚,
+Codex 用内置 Image 2 / `image_gen`; Claude 在 Web GPT 中生成 (单期封面竖横各一条 prompt; 系列多张海报才一条 prompt
+出整套)。底图出完仍按上面「默认封面格式」② 上传本人参考照补胸像。
 底图注入(压缩→b64→分片)每张要 10+ 次
 调用且分片会被静默截断, 只在必须保留真人实拍时才值得。
 **成图取回本地 — 用 `cover_bridge.py`, 三个条件缺一不可 (2026-07-30 实测定论):**
@@ -676,7 +713,7 @@ mapping → regen mid-line-pause scenes; the step-3 prosody pass) · `preview_pa
 预览_A….mp4, voice+ambient, `PART_MAP`-aware — the segment-preview checkpoint) · `build_photos.py`
 (photo→video Ken-Burns via PIL subpixel affine — user-request ONLY now, rule 9: stills default to pure
 static `-loop 1`; zoompan always banned) ·
-`make_cover.py` (小红书封面本地排版 — MODE C, explicit user approval only) · `cover_bridge.py`
+`cover_bust.py` (默认封面格式的本人胸像合成: Vision 抠像→按脸框裁胸以上→奶油描边→左下贴底, 输出双封面+`_无头像`备份) · `cover_outfit.py` (胸像衣柜: 按季节轮换/避重/同项目复用, 打印 GPT 补全半身 prompt; 衣柜 `assets/cover-wardrobe.json`) · `figure_tool.swift` (macOS Vision cutout/face, 由 cover_bust 自动编译) · `make_cover.py` (小红书封面本地排版 — MODE C, explicit user approval only) · `cover_bridge.py`
 (localhost 图片下载桥, ChatGPT/IG 签名URL专用) · `publish_bridge.py` (发布桥: 本地文件服务器喂
 成片/封面给创作者后台上传控件, CORS+PNA 头齐全 — the publish workflow itself lives in the
 `publish-xhs-douyin` skill) ·

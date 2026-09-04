@@ -6,3 +6,5 @@ assets/*.mp4
 assets/*.m4a
 assets/voice_ref*
 *.DS_Store
+scripts/figure_tool
+scripts/__pycache__/

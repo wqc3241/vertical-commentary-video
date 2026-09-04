@@ -15,6 +15,7 @@ echo "== 形象/品牌 =="
 chk "$PERSONAL_ASSETS/template2_720.mp4" "数字人模板" "第2步"
 [ -e "$PERSONAL_ASSETS/mask280.png" ] && echo "  ⚪ 圆形遮罩 mask280.png (仅 legacy 圆框版 avatar_corner_circle.sh 用, 默认贴纸版不需要)" || true
 [ -e "$PERSONAL_ASSETS/ring292.png" ] && echo "  ⚪ 描边环 ring292.png (同上, 可选)" || true
+[ -e "${COVER_FACE_REF:-$PERSONAL_ASSETS/cover_face_ref.jpg}" ] && echo "  ✅ 封面胸像参考照 cover_face_ref.jpg" || echo "  ⚪ 封面胸像参考照未配置(默认封面格式需要, 第2步)"
 [ -e "$PERSONAL_ASSETS/ending.mov" ] && echo "  ✅ 品牌片尾: $PERSONAL_ASSETS/ending.mov" || echo "  ⚪ 品牌片尾未配置(可选, 第3步)"
 [ -e "$PERSONAL_ASSETS/ending_voice.wav" ] && echo "  ✅ 片尾口播" || echo "  ⚪ 片尾口播未配置(可选, 第3步)"
 echo "== 引擎 =="

@@ -28,6 +28,14 @@ bash scripts/check_personal_assets.sh  # 随时自检缺什么
 ffmpeg -i 你的原片.mov -vf "scale=720:1280" -r 30 -c:v libx264 -crf 18 -an template2_720.mp4
 ```
 
+**封面胸像参考照（默认封面格式需要）**：一张你的正脸照（正对镜头、光线均匀、近一年内），
+抠成白底后存为 `$PERSONAL_ASSETS/cover_face_ref.jpg`（`personal.env` 里 `COVER_FACE_REF` 指向它）。
+封面流程会把它交给 GPT 补全半身、每期换一件衣服（衣柜在 `assets/cover-wardrobe.json`），
+再由 `scripts/cover_bust.py` 抠像贴到封面左下角。抠白底可直接用仓库工具：
+```bash
+cd scripts && swiftc -O figure_tool.swift -o figure_tool && ./figure_tool cutout 你的正脸照.png face_cut.png
+```
+
 ## 3. 做你的品牌片尾（可选但推荐）
 - `ending.mov`：1080×1920 的 2-3 秒"点赞关注"卡（拿你的头像+频道名做一张即可）
 - `ending_voice.wav`：你的快速口播（管线可以用你在第 1 步的声音自动合成，如
