@@ -210,6 +210,9 @@ bash scripts/check_personal_assets.sh   # 全绿才开工; 缺项会指到 ONBOA
 不得把 *.wav / *.mov / 模板视频提交进 git (.gitignore 已设防, 不要绕过)。
 
 ### 0. Setup
+- **中途更新 skill 时先做影响分析。** 对照版本差异与已批准产物，列出受影响的脚本、布局、音频、
+  缓存和预览；保留项目定制，不用上游脚本整目录覆盖 `build/`。先跑短样，成功后只重做受影响部分。
+  重型任务串行、复用已通过缓存；恢复规则见 [references/editorial-and-recovery.md](references/editorial-and-recovery.md#制作更新与局部修复)。
 ```bash
 PROJ="/Volumes/Storage/Documents/<name>"
 mkdir -p "$PROJ/source" "$PROJ/build"
@@ -258,6 +261,12 @@ cp ~/.claude/skills/vertical-commentary-video/scripts/*.py ~/.claude/skills/vert
      要继续看; 只能使用已核实事实, 禁止“震惊、封神、所有人都没想到”式夸张和无依据吊胃口。
   7. **最后一句必须是开放式提问:** 问法要与故事落点直接相关、没有标准答案, 让用户愿意留言或分享
      自己的看法; 不能用“你觉得呢”这种空泛占位, 也不能在问题后再补新的正文结论。
+- **送审前做两轮独立自审：事实准确性 + 是否值得继续看。** 事实检查通过不代表口播有吸引力。
+  人物长片先用一个贯穿问题组织转折，删掉不推动问题的年份、轮次与对手名单；开头提出的问题在
+  后文用已核实经历回应。结尾问题要有前文铺垫，也让不懂网球或仍未等到突破的人能够分享。
+  用户授权自审修改时先改完整稿再送审，不为每次内部润色反复停工；未批准前仍不制作素材或 TTS。
+  时长用当前音色/语速的实测数据估算，TTS 后读回实际长度；没有发布数据时不声称完播率已提高。
+  具体审法见 [references/editorial-and-recovery.md](references/editorial-and-recovery.md#口播与包装)。
 - Treat the output as a DRAFT. **→ SCRIPT GATE: present the full script (per-scene vo + 断句 + 标题/正文/tags,
   with any factual/style fixes you made) and WAIT for the user's approval before touching footage.** Only if the
   browser/ChatGPT is genuinely unavailable may you draft the script yourself — and say so explicitly when presenting.
@@ -272,6 +281,7 @@ cp ~/.claude/skills/vertical-commentary-video/scripts/*.py ~/.claude/skills/vert
   blur-letterbox。不能先囤一批漂亮镜头再反过来改文案迁就素材; 每个画面必须服务对应念白。
 
 ### 2. Source footage — VERTICAL-FIRST → `references/vertical-footage-and-instagram.md`
+选定或延长窗口时按 [素材窗口复核](references/editorial-and-recovery.md#素材窗口)检查内部切镜与实际裁切输出。
 **DEFAULT: use真·竖屏 footage wherever possible — the user has emphasised this repeatedly; the
 dark-blur letterbox is the FALLBACK, not the look.** Per scene, in order of preference:
 1. **Native-vertical Instagram / TikTok reel** — search the user's logged-in IG in their browser
@@ -316,6 +326,9 @@ next clip — order clips so the important line (the punchline / the named playe
 so if a minor spill remains.
 
 ### 3. Voiceover → `references/voice-and-audio.md`
+ASR、数字合并或停顿检测报警时，先按
+[误报诊断](references/editorial-and-recovery.md#声音核验误报)核对原音、归一化与时间戳，再决定重生成；
+不能仅凭相似度重录，也不能放宽阈值掩盖实际错字或词中停顿。
 **Default engine = IndexTTS-2 情感整段模式 (2026-08-04 起, 伊埃拉情感 bake-off 用户拍板):**
 2026-08-02 黄泽林 bake-off 定引擎(更清晰/字母单稿全对/35min vs F5 111min), 2026-08-04 情感升级 —
 用户反馈"清晰但缺情感、F5 更贴本人", 根因=只喂音色参考、`emo_audio_prompt` 情感槽位空置吃了
@@ -333,7 +346,7 @@ caffeinate -i nice -n 15 /Volumes/Storage/indextts2/.venv/bin/python \
 **数字。数字 邻接自动改写为 数字，数字**(258 七个月悬案 2026-08-04 定案: TextNormalizer 把中文
 句号规整成英文句点, "二百五十.八强"被当**小数点**连读成 258, 整段模式 ~50% 概率复发;
 逗号规整成"," 不并数, 6/6 全过 — prep_vo() 只动这类危险邻接, 其余句号原样, 字幕不受影响) ·
-**digitmerge 专项门**(对每个危险邻接, 听写里查"左尾2字+右首字"连体如"五十八" — 命中即废稿重掷) ·
+**digitmerge 专项门**(对每个危险邻接, 听写里查"左尾2字+右首字"连体如"五十八" — 命中后先保留数字边界、听原音排除ASR误报，确认合并错读才重生成) ·
 **拼音硬纠正**(难字在 scenes.py 加 `PINYIN={"昺":"BING3"}`, 行内大写拼音+声调数字, 合法音节见
 checkpoints/pinyin.vocab; 前后鼻音如 林LIN2 标了也可能仍偏 — 标注后交用户终审, 别空耗稿数) ·
 **whisper 门**(拼音平面相似度≥0.80 + 幻觉插入 + 缩写逐字母)。
@@ -459,8 +472,8 @@ caffeinate -i nice -n 15 bash build/avatar_corner.sh "$PROJ/<OUTPUT_NAME>" build
 脚本自含全部路径/参数注释 — 引擎在 /Volumes/Storage/wav2lip-onnx-256 (需 rvm_mobilenetv3_fp32.onnx),
 模板在 /Volumes/Storage/avatar-template/assets (模板 126.5s, 音频更长时引擎自动循环帧,
 **不要自己做倒放回文** — ffmpeg reverse 整段进内存会崩 16G 机器)。耗时 ~8-9min/分钟口播 (CPU),
-必须 caffeinate 包着跑防睡眠断工。数字人只覆盖口播段 0..V, 结尾卡保持无头像。头像盖在战绩卡上
-是正常效果, 预览时照常检查。
+必须 caffeinate 包着跑防睡眠断工。数字人只覆盖口播段 0..V, 结尾卡保持无头像。头像可叠在卡片空白区，但不得遮挡字幕、标题、比分或关键数据。
+按最终合成逐种字幕/卡片布局检查；新增头像或改变布局后重建受影响预览，旧批准不覆盖新遮挡。
 **⚠ 两个 2026-09-01 实踩已内建进脚本, 别再犯**: ① wav2lip 引擎内部拼 ffmpeg 命令不给路径加引号 —
 项目目录名含空格 ("Kids Day Volunteer") 时 `--outfile` 被截断成 `.../Kids`, 整步静默失败 → 工作目录固定在
 无空格路径 `/Volumes/Storage/tmp/avatar_<hash>` (env AVATAR_TMP 可覆盖), BASE/AM 先转绝对路径再 cd 引擎目录;
@@ -504,9 +517,11 @@ names**, the win/trophy is YOUR player, the poster. For recorded takes, sync-spo
    walk, celebration): full-res frames at BOTH ends of the window; confirm subject via the rule-3
    escalation ladder (brand logo > kit construction > scorebug), not colour alone. A window can start
    on your player and end on the opponent after an in-window camera cut — probe the last second.
-5b. **数字人版三帧抽查** (有 6e 时) — 中段一帧 (贴纸在右下角、白描边完整、嘴型自然、无任何方框/圆框/底色)、
+5b. **数字人时域与遮挡检查** (有 6e 时) — 中段一帧 (贴纸在右下角、白描边完整、嘴型自然、无任何方框/圆框/底色)、
    口播结束前 1s 一帧 (贴纸仍在)、结尾卡一帧 (贴纸已消失); 数字人版时长必须 = 原成片时长 (±1帧 — 贴纸 mov
    比口播短 ~0.1s 会让 partA 少 6 帧, 脚本已用 tpad 兜底, 仍要读回 nb_frames 核对)。加上上面的音轨空洞自检一起跑。
+   三帧只验证出现/消失时域；另按每种字幕/卡片布局和变更区域检查短时遮挡，依照
+   [制作更新与局部修复](references/editorial-and-recovery.md#制作更新与局部修复)重验受影响预览。
 5. **Re-scan after EVERY duration change** — re-recording even ONE scene's voice changes all montage
    slice lengths and shifts every window: after any re-assembly, re-extract frames and repeat checks
    1+4 on the shifted windows. A full-screen "COACH" title card drifted into frame TWICE this way
@@ -518,6 +533,9 @@ names**, the win/trophy is YOUR player, the poster. For recorded takes, sync-spo
 8. **Still/video boundary audit** — 对所有照片核对精确时长; 若项目约定静态混剪后只用视频, 抽取
    boundary 前后帧并确认此后零静态图。三项门禁(人物、声音文字、时间线/片尾)全绿才算可发布成片。
 Deliver the MP4. Re-render only changed scenes (`render.py scene <ID>` / `render16.py scene <ID>`).
+
+**生产与发布状态分开记录。** 本地成片交付不等于平台已提交；发布后按 `publish-xhs-douyin` 的
+收尾规则更新状态真源，并同步项目中已存在的状态摘要，避免一个文件“已定时”、另一个仍“待提交”。
 
 **最终五件套核验:** 完整成片 + 小红书标题 + 发布正文/tags + 竖版3:4封面 + 横版4:3封面。
 逐项给出项目内绝对路径; 视频用 `ffprobe` 验证可播放, 双封面读回尺寸, 标题/正文检查完整且与成片一致。
@@ -538,6 +556,10 @@ a chapter list with timestamps + themes, appended to `小红书发布文案.md`.
 - Titles follow the copy-style rules (Arabic digits, natural phrasing, no hype).
 
 ### 8. 双平台封面图 — deliver WITH the 发布文案, every video (updated 2026-08-04)
+**先做包装误读检查，再生成封面。** 单独看标题、封面文案和片头 chip，确认普通读者不会误解事件
+状态、时间或因果；“宣布告别赛季”不等于“已经退役”。修改时三处一起核对，不让旧 chip 继续误导。
+真实参考图先验身份、时期和清晰度；生成后复核是否仍像本人、文字有无错字、脸部与标题是否完整。
+保存参考来源、提示词和输出路径。具体见 [口播与包装](references/editorial-and-recovery.md#口播与包装)。
 **先按当前运行环境选生成入口, 这是硬分流规则:**
 - **由 Codex 制作** → 使用 Codex 内置 Image 2 / `image_gen`; 不为了生成图片另外打开 Web ChatGPT。
 - **由 Claude 制作** → 使用用户自己的 Web 版 GPT 项目生成; 保留原来的浏览器上传 reference +
@@ -673,17 +695,9 @@ vanished) and cmd+A-delete can fail so text ACCUMULATES → always `javascript_t
 innerText, then JS-click `button[data-testid="send-button"]`. Newlines auto-send — ONE line only.
 
 ### 9. 发布 — when the user asks to publish, use the `publish-xhs-douyin` skill
-Both platforms' web backends are handled through the environment-specific authenticated browser:
-**Codex uses its in-app Browser; Claude uses Claude for Chrome.** Keep that browser path for the whole
-publish run and reuse the user's logged-in tabs; do not switch to a new/headless browser.
-video upload via the window.name relay + `publish_bridge.py`, title/body/tags, chapter features,
-declarations, custom cover, and 定时发布. The complete dual-platform playbook (step order, injection
-snippets, per-platform quirks, timezone semantics, white-screen recovery) lives in the separate
-**`publish-xhs-douyin`** skill — invoke it; do not improvise from memory. Non-negotiable user rules
-enforced there: 🎾 title prefix (tennis); XHS = chapters via 添加章节 **at first publish** (locked
-after; never in the body text) + 原创声明 ON; douyin = 自主声明「内容为个人观点或见解」+ chapters
-(智能章节 or manual) + last-tag trailing space. Default schedule slot: Beijing 19:00 (XHS picker IS
-Beijing time; douyin picker is browser-local — convert).
+读取 `publish-xhs-douyin`，把已批准五件套、章节、当前对话的发布授权、指定 tags 和准确北京时间交给
+该流程。浏览器交互、上传、声明、时区与提交核验以发布 skill 和当前工具文档为准，不在本节复制旧步骤。
+沿用已有批准，只询问缺失信息；逐平台核验后同步项目状态真源。
 
 ## Why it looks the way it does
 - **Dark moving blur fill**: the footage is scaled-to-cover, blurred, and **darkened ~0.42** behind
