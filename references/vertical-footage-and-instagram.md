@@ -10,6 +10,9 @@ Both feed the SAME render via a `build/reframed/<stem>_<tin>_<dur>.mp4` conventi
 captions / chips / scene timing / cloned-voice assembly are unchanged. You can mix per scene:
 some scenes full-bleed IG, others tracked-from-landscape, others the classic blur-fill.
 
+先执行 [footage-sourcing.md](footage-sourcing.md) 的身份/使用依据门；原生竖版、官方来源或可下载均不免检。
+战术判断要保留球路、对手、比分与关键场区；跟踪裁切破坏证据时用完整比赛画面，而不是为满屏牺牲分析准确性。
+
 ## The reframed-clip convention (how full-bleed plugs in)
 
 `render.py._render_base` was extended: for a non-card scene it FIRST looks for
@@ -41,8 +44,8 @@ python3 build/reframe_scenes.py            # all ig_-less landscape windows; re-
 python3 build/render.py all && python3 build/render.py assemble
 ```
 - ~1–2 min per ~10s window (detect + CRF-12 slow encode). 10 windows ≈ 15 min.
-- It tracks the **most prominent player**, so for 2-player rallies it may follow either — fine for
-  positioning B-roll; for "this is PLAYER X" beats prefer single-subject practice/court-level
+- It tracks the **most prominent player**, which may be the opponent in 2-player rallies. Never assume that
+  is correct for a named-player or tactical claim; preserve both players/ball if needed. Prefer single-subject practice/court-level
   footage (unambiguous). Verify every reframed clip (grab a mid-frame, confirm subject in frame).
 - Court-level practice and slow-mo crop beautifully (subject centered); wide rallies lose context
   but read as real vertical match play.
@@ -58,10 +61,9 @@ The high-yield move is **search keywords**, not browsing a single fan page (fan 
 non-match edits: podium, crowd, talking-head, "core memory" text cards). Good queries (the user's
 own examples): `jannik sinner forehand`, `jannik sinner close shot`, `jannik sinner point`,
 `jannik sinner edits`, `<player> running forehand`, `<player> footwork`. Search → open a reel →
-**Reels tab** of an account also works. Browse with the Claude-in-Chrome MCP
-(`mcp__Claude_in_Chrome__*`, load via ToolSearch `+chrome navigate tabs read_page screenshot`):
-`tabs_context_mcp createIfEmpty` → navigate `https://www.instagram.com/` → click search (left
-rail) → type query → open results. Pull permalinks from the DOM:
+**Reels tab** of an account also works. Codex 用 CUA 复用已登录标签，默认 in-app，用户指定 Chrome 时用 Chrome。
+只有用户明确要求或环境已授权旧 Claude 工具时才用对应旧路径，不能因本文示例绕过浏览器选择。
+导航 Instagram → 搜索关键词 → 打开结果；当前工具允许时只读可见 DOM 中的链接:
 `[...document.querySelectorAll('a[href*="/reel/"]')].map(a=>a.href)`.
 
 What clips actually serve the footwork/movement theme:
@@ -100,7 +102,7 @@ montage seg), so they always match. (For one-off windows you can also just `ffmp
 -i source/<stem>.mp4 -vf "scale=1080:1920:flags=lanczos,fps=30" ... build/reframed/<key>.mp4`.)
 
 Identity still matters: confirm each IG clip is YOUR player (search returns look-alikes); a clip
-of a consistent single player from a `<player>`-named search is usually safe, but eyeball it.
+found under a `<player>`-named search is only a candidate, not identity proof. Check actual face/kit/event anchors and the cropped output.
 
 ## Always verify after
 Grab a full-res frame from each changed scene's start/mid (`ffmpeg -ss t`), tile, Read it:

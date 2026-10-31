@@ -3,6 +3,23 @@
 Goal: get clean landscape highlight reels into `<project>/source/<stem>.mp4`, one stem per
 match/segment. You cut vertical segments from these later.
 
+## 使用依据与比赛解析证据（找片前必读）
+
+- **来源可信与允许使用分别核验。** 官方发布、可下载、加解说、短截取、AI声明或注明出处，均不单独证明可转载。
+  对计划入片的比赛视频、照片、原声分别记录来源URL/发布者、人物、赛事与日期、使用依据及证据文件，
+  核对允许的用途/平台/范围。优先自摄、用户拥有权利的素材或适用于本次用途的明确许可。
+- 未找到适用于两平台发布的使用依据时，不把该素材选入发布版；换可核验授权素材、自摄演示或原创球场示意。
+  原创脚本不能替代比赛影像权限；图片与原声也不因脱离完整录像而自动可用。
+- **关键判断要有对应画面。** 逐项标“说了什么→哪一赛事/回合/秒段支撑→画面确实显示什么→推断边界”。
+  比赛技战术片不能全是卡片和规则说明；优先以完整、可用的真实回合展示击球选择，再用原创示意解释。
+  没有可用比赛画面时，先把自摄/原创示意替代方案列入素材门，明确不是真实比赛，不能直接再交全卡片版。
+- 留存发球—接发—关键下一拍及该分结果所需连续信息，不裁掉球、对手或关键场区，只留下人物特写。
+  切成若干独立资料片段时标清赛事/日期，不能让观众以为是同场同一回合。
+- 单个集锦回合不证明整场胜负原因、成功率、固定习惯或球员心理。事实、可见动作和分析推断分别措辞；
+  没有统计依据时写“这个回合能看到”，不能写“整场就是因为”。
+- 平台实际出现体育赛事版权限制时保存通知原文、作品ID、截图和时间，说明是平台理由，不冒充法律认定。
+  不用去水印、镜像、裁切、调速或换封面规避检测；限制未解决不按普通可播放作品统计或自动重传。
+
 ## Find candidates with yt-dlp search
 `yt-dlp` can search YouTube and print results without downloading:
 ```bash
@@ -12,7 +29,7 @@ yt-dlp --no-warnings --flat-playlist \
 ```
 Prefer **official channels** — Roland-Garros, WTA, ATP, the league/federation. They post the same
 highlights as Instagram but are reliably downloadable. Reputable aggregators (House of Highlights,
-etc.) are fine fallbacks when an official reel for a specific round isn't indexed.
+etc.) may provide research leads when an official reel is not indexed; publisher reputation is not reuse permission. Apply the gate above before selecting or downloading a production asset.
 
 ## Download
 ```bash
@@ -167,5 +184,5 @@ a content change — keep the END a few frames on the rally side of it. `verify_
 TRUE last frame, so a stray ending is visible there before you ever render.
 
 ## Copyright framing
-This is broadcast footage. For the user's own commentary/fan edit it's their call to make; just be
-transparent about the source. Don't reproduce long copyrighted text anywhere in the deliverable.
+执行本文件开头的使用依据门；“官方集锦可获取、注明来源即可”的旧口径不适用。
+事实核验可参考官方赛果/报道，影像是否入片则另核；本文件不把评论用途自动视为获授权。

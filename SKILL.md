@@ -6,13 +6,33 @@ description: >-
   over real footage. Runs the staged pipeline: research and oral Chinese script, script and
   footage approval gates, identity-verified sourcing, IndexTTS-2 narration in the user's voice,
   word-exact captions, low-memory rendering, scene previews, subject/audio/timeline QC, branded
-  ending, environment-routed AI dual covers, publish copy, and chapters. Trigger even when the user only gives
+  ending, identity-preserving photo or illustrated dual covers, publish copy, and chapters. Also use
+  for reviewing this account’s video/image-post reach, retention, follower growth, and past covers. Trigger when the user gives
   a topic and approximate duration. Also covers 网球练习复盘 — the user's OWN on-court footage analysed
   coach-style into a summary post (no narration; action-frame cover rendered locally) — trigger on
   「发这种打球视频 / 复盘我的练习视频 / 把这段拉球发了」.
 ---
 
 # Vertical Commentary Video Builder
+
+## 任务模式与已确认要求
+
+先判断是制作、局部修复、数据复盘，还是“先更新要求、继续观察”。**复盘/观察模式不启动制作流水线**：
+直接读 [references/performance-review.md](references/performance-review.md)，保留现有作品与版本。
+只有用户已授权制作或修复的部分才进入下面的制作步骤；分析建议、skill 更新和观察期结束均不自动授权改封面、重传、删除、申诉或改排期。
+
+用户要求比较自己的改稿、以后照此生成时，先对照保存的原稿与当前用户版本，按
+[references/user-voice-style.md](references/user-voice-style.md) 提炼实际变化并更新生成要求。
+保留用户原文件；检查连续阅读版与 canonical、配音/字幕区是否一致，旧区未同步时记录状态，不能沿用旧区继续制作。
+
+制作 brief 沿用项目已有文件，明确：时长/深度、事件发生日期、计划发布时间及其时区、两平台范围、
+`avatar_mode`（`none` / `corner` / `on_camera`）、封面方式、用户指定话题、素材使用依据和各门批准记录。
+用户要求3–4分钟深度解析时按该目标制作；不能因留存低自行缩成短片。用户说“这次不用右下角数字人”
+即覆盖该批原有默认，整批按 `none` 执行；不能恢复旧模板自动加人。画面中的数字人与封面作者胸像分别记录，不能混同。
+
+以下是已明确的制作要求：自然口语、按批准文本断句、配音前确认数字/人名读法、真实人物不重绘、
+照片融入封面背景、封面文案保留具体信息、不固定四字、赛事素材核验身份/时间/使用依据。
+“前5秒怎样开场”“是否缩短”“哪种题材/封面更涨粉”属于待验证假设，依复盘参考先观察再决定。
 
 ## 视频类型分流 — 开工前先判断走哪条线
 
@@ -59,7 +79,9 @@ Hard-won quality rules — the user cares about these, don't regress them:
    a detected boundary is the *first frame of the next shot*, so ending exactly on it flashes one frame
    of crowd / reaction / handshake at the cut (the user notices). Hand-set/`_MANUAL` tins must subtract
    the margin too: `tin = boundary - 0.17 - dur`.
-2. **Footage is real match play.** Avoid establishing/branding shots (court + event logo), slow-mo
+2. **比赛/战术解析用真实且有使用依据的比赛画面支撑关键判断。** 不能把整期变成 HyperFrames 卡片讲规则。
+   来源、使用依据和缺片替代方案见 `references/footage-sourcing.md`；官方可下载不等于可跨平台转载。
+   Avoid establishing/branding shots (court + event logo), slow-mo
    beauty close-ups, changeovers, and crowd cutaways in round scenes — pick the rally shots.
 3. **Identity is correct — verify EVERY clip, including the hook/intro.** Anchor your player's kit
    colour from a *known-champion* shot (trophy lift / match-winning collapse), then match it everywhere.
@@ -156,12 +178,13 @@ Hard-won quality rules — the user cares about these, don't regress them:
 16. **念白、字幕、TTS 只有一个 canonical source.** 用户审批后的 `scene.vo` 是唯一真源; TTS 输入、
    断句字幕、预览脚本和发布文案中的引用都从它派生。修一句要同时改源数据并重生对应音频/字幕,
    禁止 TTS 阶段临时润色、同义改写或拿旧音频拼回去。最终逐 scene 对听文字, 必须逐字一致。
-17. **片尾是“两句连续交接”, 不能漏 CTA.** 正文最后一句必须是能激发评论的开放式问题; 随后把
+17. **正文收束后接独立 CTA, 不能漏。** 正文以贴合本期的结论、期待或开放问题结束; 随后把
    `关注我，了解更多网球故事和知识。` 作为独立尾音轨接入品牌片尾。CTA 可单独加速到刚好覆盖
-   ending.mov, 但不能提前塞进上一场、被品牌声盖住或因时长不足直接删除。交付前耳听确认问题句结束
+   ending.mov, 但不能提前塞进上一场、被品牌声盖住或因时长不足直接删除。交付前耳听确认正文结束
    后 CTA 才开始, 且 CTA 与品牌动画同起同落。
 18. **网球文案固定口径:** 标题首字符是 `🎾`; 口语化、像真人讲故事, 少用“不是…而是…”模板对比;
-   结尾用开放提问; 当人物经历很多但仍年轻时, 明确说出年龄/“依然很年轻”来托住“未来仍有可能”的落点。
+   冠军/复出故事可用有依据的期待收束，不强制开放提问；具体写法见 `references/user-voice-style.md`。
+   当人物经历很多但仍年轻时, 可用已核实年龄托住“未来仍有可能”的落点，不把期待写成必然结果。
 19. **精确反馈只做外科修复.** 用户指出“预览 B 4–7 秒人物错了”时, 只替换该窗口、重渲对应 scene
    和受影响 preview, 再对这段的首/中/尾帧做身份复核; 不无故整片重跑。反馈确认后要主动继续下一门禁,
    每个耗时阶段都明确说明“正在运行的进程/产物/下一检查点”, 不能把尚未启动说成“正式制作中”。
@@ -186,6 +209,7 @@ render is the expensive part; the gates exist so the user never pays for a full 
 2. **Footage gate.** After you've chosen every scene's clip (window + which player + full-bleed vs blur), PRESENT
    the plan — one line per scene, e.g. `S2 老德对拉(ESPN 704,跟踪)→小黑握拳特写(02_W_TB 352)→…`, backed by the
    contact-sheet frames you actually verified — and WAIT for approval before generating voice + rendering.
+检查当前对话和项目记录中的批准；同一版本已获批准就继续，不重复请批。脚本或素材方案实质改变时只补受影响的门。
 Only after the footage gate is approved do you run steps 3→7. (A tiny tweak the user requests mid-build — swap one
 clip, fix one line — doesn't need a fresh gate; a new script or a new footage set does.)
 3. **Segment-preview checkpoint (the user's standard review flow, 2026-07).** After rendering, do NOT deliver a
@@ -198,16 +222,12 @@ clip, fix one line — doesn't need a fresh gate; a new script or a new footage 
 
 ## Workflow (in order)
 
-### -1. 新用户开箱门禁 (仅首次) — 别人复用这条流水线从这里进
-本仓库**零个人数据**: 声音参考/数字人模板/品牌片尾都属于使用者本人, 只存在本机
-(`personal.env` 指定, 已被 .gitignore 挡在库外)。**第一次使用前必须先录自己的三件套**
-(①两段自己的语音: 音色参考+情感参考 ②自己的数字人模板视频 ③可选品牌片尾) —
-完整步骤见 `docs/ONBOARDING.md`, 录制规范见 `docs/数字人模板录制指南.md`。
-```bash
-bash scripts/check_personal_assets.sh   # 全绿才开工; 缺项会指到 ONBOARDING 对应步骤
-```
-⚠ 助手执行铁律: 发现个人资产缺失时, **先带用户完成录制, 再开始做片**; 任何情况下
-不得把 *.wav / *.mov / 模板视频提交进 git (.gitignore 已设防, 不要绕过)。
+### -1. 新用户开箱门禁（仅检查本次实际需要的资产）
+声音参考、数字人模板、品牌件属于使用者本人，按 `personal.env` 存于本机，不提交进 git。
+克隆口播需音色/情感参考和配音引擎；`avatar_mode=corner` 才需数字人模板、wav2lip/RVM；
+`none` 不录数字人、不查这些依赖、不运行数字人脚本。品牌片尾按既有约定核对。
+`scripts/check_personal_assets.sh` 是旧全量检查，会检查未选用的数字人资产；无数字人时按 brief 手工检查所需项，
+不要因不需要的资产报错而阻塞。录制细则见 `docs/ONBOARDING.md`、`docs/数字人模板录制指南.md`。
 
 ### 0. Setup
 - **中途更新 skill 时先做影响分析。** 对照版本差异与已批准产物，列出受影响的脚本、布局、音频、
@@ -228,17 +248,20 @@ cp ~/.claude/skills/vertical-commentary-video/scripts/*.py ~/.claude/skills/vert
   prompt; remove or explicitly flag anything unverified, and preserve the source URLs/notes in the project.
   Names and numbers appear on screen, so approximate memory is not acceptable.
   **省 token 三则 (2026-08-02 实测标定, 前期约占全会话 10–15%):**
-  ① **WebFetch 黑名单**: `atptour.com` / `scmp.com` / `rappler.com` 一律 403 — 别撞, 用 WebSearch
-  综述或维基; ② **系列/成对选题合并核查**(两人一轮查完, 实测省近半); ③ 中英文各查一遍是**必要**的
-  (中文维基与英文维基冲突正是这么发现的), 但同一事实别换关键词反复搜。
+  ① 某来源抓取失败时换受支持的浏览器、官方赛果/签表或官方搜索结果，不把过去403经验当永久黑名单，
+  不用搜索综述或维基替代关键原始证据；② 同系列事实可合并核查；③ 中英文有冲突时回到原始来源，
+  同一已核实事实不反复搜索。
+  **发布时间是事实检查的另一时间点。** 记录比赛发生日与计划发布日；延迟发布按“某月某日的比赛/回看”
+  写稿，资料画面标赛事/年份。到发布日已结束的事件不再写“今天/刚刚/正在”；排名、下轮对手、预测等时效项
+  在提交前重核或删除，不能让文案把过去比赛伪装成当天新闻。
 - **MANDATORY — generate the 解说词 in the USER'S OWN ChatGPT via their browser; never just write
   it yourself.** The user has had to correct this repeatedly — skipping it is the #1 process
   mistake on this skill. Follow `~/.claude/skills/xhs-personal-vlog/references/copy-generation.md`:
-  Claude-in-Chrome → **直接导航到用户自己的文案项目主页
+  使用当前获授权的浏览器（Codex 用 CUA，默认 in-app；用户指定 Chrome 则用 Chrome）→ **直接导航到用户自己的文案项目主页
   `$GPT_PROJECT_URL`**(在 personal.env 配置一次, 形如 https://chatgpt.com/g/g-p-<你的项目ID>/project;
   ID 固定, 别再"开首页→截图→翻侧栏→查 DOM 拿 href" — 那套多花两张截图和三四次调用) → send ONE single-line
-  prompt (newlines auto-send!) that includes the topic, the VERIFIED facts, spoken length, ≤20-char
-  sentences, numbered scenes, and asks for 标题/正文/tags too — **and REQUIRE a fact-check first**:
+  prompt that includes the topic, VERIFIED facts, event/publication dates, spoken length, natural complete
+  sentences with semantic punctuation/paragraph breaks, numbered scenes, and 标题/正文/tags — **and REQUIRE a fact-check first**:
   prompt 里明确写「先逐条核对我给出的事实清单再写稿;只使用清单内的事实,任何清单外或不确定的
   说法要标注出来,不要写进正文」(2026-07-22 rule; GPT 曾把「仅入学前奖金放开」写成「取消奖金限制」
   被用户抓出 — 政策/规则类表述必须精确到适用范围) → wait 30–60s(轮询用
@@ -247,23 +270,32 @@ cp ~/.claude/skills/vertical-commentary-video/scripts/*.py ~/.claude/skills/vert
   '[data-message-author-role="assistant"]')].pop().innerText` — `get_page_text` 会把你自己 1900 字的
   提示词整个回读一遍(付两遍 token, 实测约占收稿量一半)。Canvas mode often stalls mid-stream: ask for
   纯文本对话回复 not canvas, and reload the page to see server-side truth before assuming failure.
+  上述页内写入/派发事件例子仅用于工具明确支持的旧 Claude 路径；Codex 通过 CUA 支持的 UI 输入/读取，不能照搬注入。
   Save the publish copy to `<project>/小红书发布文案.md`.
+- **出首稿前读取账号口播风格。** 读 [references/user-voice-style.md](references/user-voice-style.md)，
+  把其中“首稿提示块”连同本期 brief 和核实事实放进上述同一次 ChatGPT 请求；在第一稿里落实用户的
+  结果先行、自然承接、数据后给判断与结尾期待，不能只在收稿后补“更口语化”。用户本期另有要求时以本期为准。
 - **Copy-style rules the user requires — put these IN the ChatGPT prompt AND enforce when you map to captions
   (2026-07 feedback):**
   1. **数字一律用阿拉伯数字**(比分 3-6、时间 5小时15分、纪录 第15次、25冠),**不要中文数字**。
      ⚠️ 用户口中的「罗马数字」= 阿拉伯数字(西文数字 0-9),不是真的 Roman numerals — 别写成 XII。
      (念白 `vo` 仍要中文数字给 F5-TTS,见下条;GPT 出稿用阿拉伯数字,你在 CAPTIONS 里保留数字、在 `vo` 里转中文。)
-  2. **语句通顺自然、口语化,不要浮夸 / 过度夸张的说法。**
+  2. **语句通顺自然、口语化。** 像给球友聊一场值得看的比赛，保留有事实支撑的情绪与评价，
+     少堆履历、比分和抽象判断；不把稿件写成报表或每段一个励志金句。
+     批准的标点/段落/语义停顿决定口播断句，字幕按显示宽度另行分行，不能把短字幕逐条配音。
+     数字、人名、多音字在正式配音前按 [voice-and-audio.md](references/voice-and-audio.md) 确认读法。
   3. **少用「不是…而是…」这类转折句式**(以及其它生硬的对比转折)。
   4. **英文大写缩写**:字幕/文案保留原文 (NCAA/TCU/ATP),念白 `vo` 写成顿号逐字母 `N、C、A、A`(见 step 3)。
   5. **人名用该账号惯用的中文译名;用户点名的昵称优先**(例:Learner Tien = 钱学生, 2026-07-22)。
-  6. **开头 2–3 句必须形成 hook:** 尽快给出人物、反差/悬念或本期最值得看的问题, 让用户知道为什么
+  6. **开头 2–3 句必须形成 hook:** 尽快给出人物和最重要的已核实结果/突破，或贴合本期的反差、问题。
+     夺冠类优先报夺冠及其意义，技术问题可在分析段展开，不强制先报低谷或抛问题。让用户知道为什么
      要继续看; 只能使用已核实事实, 禁止“震惊、封神、所有人都没想到”式夸张和无依据吊胃口。
-  7. **最后一句必须是开放式提问:** 问法要与故事落点直接相关、没有标准答案, 让用户愿意留言或分享
-     自己的看法; 不能用“你觉得呢”这种空泛占位, 也不能在问题后再补新的正文结论。
+  7. **结尾按内容自然收束，不强制提问。** 冠军/复出人物片可回扣突破和经历，再给相关赛事的期待；
+     讨论型内容可用有前文铺垫的开放问题。避免“你觉得呢”占位和机械三选一；收束后另接品牌 CTA。
 - **送审前做两轮独立自审：事实准确性 + 是否值得继续看。** 事实检查通过不代表口播有吸引力。
-  人物长片先用一个贯穿问题组织转折，删掉不推动问题的年份、轮次与对手名单；开头提出的问题在
-  后文用已核实经历回应。结尾问题要有前文铺垫，也让不懂网球或仍未等到突破的人能够分享。
+  人物长片先明确一条叙述主线，删掉不推动主线的年份、轮次与对手名单；主线可以是一次突破，
+  不必写成贯穿全片的显式提问。若开头提出问题，后文用已核实经历回应；若结尾提问，给它前文铺垫。
+  对照用户改稿风格检查结果、承接、数据解释、关键局落点和结尾，检查清单见 `references/user-voice-style.md`。
   用户授权自审修改时先改完整稿再送审，不为每次内部润色反复停工；未批准前仍不制作素材或 TTS。
   时长用当前音色/语速的实测数据估算，TTS 后读回实际长度；没有发布数据时不声称完播率已提高。
   具体审法见 [references/editorial-and-recovery.md](references/editorial-and-recovery.md#口播与包装)。
@@ -273,19 +305,23 @@ cp ~/.claude/skills/vertical-commentary-video/scripts/*.py ~/.claude/skills/vert
 - **After** the script is approved, map it to `build/scenes.py` from `scenes_template.py`. Per scene: `vo`
   (spoken, **Chinese numerals** 六比三 so TTS doesn't read English digits — convert the GPT digits here) +
   a `CAPTIONS[id]` list of the **display lines** (the user's own 断句, **阿拉伯 digits** 6-3). Each caption
-  line must equal the spoken words (only numerals / the 比↔- score separator differ) or caption timing drifts;
-  keep every caption line **≤13 chars** so it never overflows (render.py wraps at 820px as a backstop). Fill
+  line must equal the spoken words (verified display/spoken numeral, acronym and 比↔- mappings may differ).
+  `2分`按数量语境念“两分”，`2比1`念“二比一”，`第2盘`念“第二盘”；不能全局把2替成二/两。
+  每条字幕按屏宽分行（≤13字是显示参考，render.py 820px兜底），**换行不是口播停顿**。保存批准的
+  `vo` 标点和语义停顿说明，不按字数或镜头长度重新切碎口播。Fill
   `RESULTS_CARD`/`POSTER`. Then move to footage — the **next** stop is the Footage gate, not the render.
 - **脚本通过后才设计画面和搜索素材.** 逐 scene 根据已批准念白写清“这句话需要看到什么”以及搜索词,
   再搜索相符的视频/图片; 优先级为原生竖版视频 → 竖版真实图片 → 横版视频跟踪裁切 → 横版完整画面
   blur-letterbox。不能先囤一批漂亮镜头再反过来改文案迁就素材; 每个画面必须服务对应念白。
 
 ### 2. Source footage — VERTICAL-FIRST → `references/vertical-footage-and-instagram.md`
+先读 `references/footage-sourcing.md` 的使用依据与解析证据要求，再找/下载候选素材。
 选定或延长窗口时按 [素材窗口复核](references/editorial-and-recovery.md#素材窗口)检查内部切镜与实际裁切输出。
 **DEFAULT: use真·竖屏 footage wherever possible — the user has emphasised this repeatedly; the
 dark-blur letterbox is the FALLBACK, not the look.** Per scene, in order of preference:
 1. **Native-vertical Instagram / TikTok reel** — search the user's logged-in IG in their browser
-   (Claude-in-Chrome): keyword search (`<player> match point / forehand / celebration / edits`),
+   （Codex 经 CUA 使用已有登录标签，用户指定 Chrome 则用 Chrome；旧 Claude 工具仅在获准时使用）:
+   keyword search (`<player> match point / forehand / celebration / edits`),
    plus official accounts' Reels tabs (@rolandgarros, @wimbledon, @atptour, the players). Pull
    `/reel/` permalinks from the DOM, download `yt-dlp --cookies-from-browser chrome`, wire in via
    `build_ig.py` (→ `build/reframed/` keys). Most reels are 720×1280 — upscale lanczos; tell the
@@ -319,13 +355,15 @@ covers match-point/identity/montage selection in detail; identity checks apply t
 HyperFrames 出动态卡 stem (`source/hf_*.mp4`, 原生竖版自动满屏, `lock: True`, reframe 自动跳过,
 assemble 自动补静音)。模板+账号 frame.md 在 `assets/hyperframes-card-template/`; `check` 全绿 +
 snapshot 逐字校验后渲染 (60fps `-w 2`, 与其它重任务串行)。动态卡也进 footage-gate 清单, 标注
-"HF动态卡: <演示什么>" 并附 snapshot 帧。
+"HF动态卡: <演示什么>" 并附 snapshot 帧。卡片负责解释证据，不替代整期真实比赛；缺少可用比赛素材时
+先提出经核验的自摄演示/原创球场示意替代方案，不能把用户已否决的全卡片版重新包装成交付。
 **→ FOOTAGE GATE: present the per-scene clip plan (with the contact-sheet frames you verified) and WAIT for
 approval before step 3.** Montage note: clips are sliced **equally** (`D/n`), so a caption beat can spill onto the
 next clip — order clips so the important line (the punchline / the named player) lands on the RIGHT clip, and say
 so if a minor spill remains.
 
 ### 3. Voiceover → `references/voice-and-audio.md`
+正式配音前必读该参考的“批准文本、断句与读音门”，先确认读音表并验一段含关键数字/人名的完整句短样。
 ASR、数字合并或停顿检测报警时，先按
 [误报诊断](references/editorial-and-recovery.md#声音核验误报)核对原音、归一化与时间戳，再决定重生成；
 不能仅凭相似度重录，也不能放宽阈值掩盖实际错字或词中停顿。
@@ -333,7 +371,8 @@ ASR、数字合并或停顿检测报警时，先按
 2026-08-02 黄泽林 bake-off 定引擎(更清晰/字母单稿全对/35min vs F5 111min), 2026-08-04 情感升级 —
 用户反馈"清晰但缺情感、F5 更贴本人", 根因=只喂音色参考、`emo_audio_prompt` 情感槽位空置吃了
 内置中性向量。现默认: **整段场景文本一次合成 + 用户自己的富情感录音当情感参考 + α1.0 + 原生语速**,
-模型自己安排句间呼吸(0.2-0.46s 自然变化), 零拼接零裁剪(逐句拼接的句界刀口在情感模式下修不干净,
+模型在批准文本的语义边界安排自然呼吸，仍需核对实际断句；不能接受模型任意改标点含义。
+零拼接零裁剪(逐句拼接的句界刀口在情感模式下修不干净,
 半截音三轮实证)。安装家 `/Volumes/Storage/indextts2/`(repo+checkpoints+venv, ~12G;
 重装: git clone index-tts/index-tts → uv sync → hf download IndexTeam/IndexTTS-2 --local-dir checkpoints)。
 ```bash
@@ -366,20 +405,17 @@ VOICE_SPEED=0.85 /Volumes/Storage/voice-clone/venv/bin/python \
    "$PROJ/build/regen_tts.py"     # tennis_backup ref + per-clip whisper verify + retry<=4 -> audio/<id>.wav + durations.json
 python "$PROJ/build/check_tts.py" # standalone report; homophones/traditional-script/number-normalization are FALSE alarms — eyeball diffs
 ```
-**断句/语气 audit — MANDATORY before captions (this made the 2026-07 build "完成度非常高"; the user
-had previously flagged 断句奇怪 like "深圳|女孩"):** F5-TTS sometimes inserts a prosody break MID-phrase.
-Whisper word-gap timestamps CANNOT detect these — audit acoustically:
-```bash
-/Volumes/Storage/voice-clone/venv/bin/python "$PROJ/build/fix_pauses.py"        # audit + auto-regen flagged scenes
-/Volumes/Storage/voice-clone/venv/bin/python "$PROJ/build/regen_fix.py" S3,S7   # targeted re-takes if any remain
-```
-Method (in `fix_pauses.py`/`fix_pauses_lib.py`): ffmpeg `silencedetect` (-34dB / 0.24s, tightened
-2026-07-21) finds real pauses → whisper word positions + difflib `SequenceMatcher` map each pause onto
-the caption-line 断句 boundaries (survives digit/homophone drift; exact ±0 boundary match — a ±1
-tolerance masked a real "李慧|说" break once). A pause AT a line boundary is correct prosody; a pause
-INSIDE a line is a break → regenerate that scene and re-pick takes until ZERO intra-line pauses
-(gaps whose context contains a latin letter are exempt — 顿号-spelled acronym letters pause legitimately).
+**断句/语气 audit — 所有配音引擎都必须核对。** 停顿依据是批准的 `vo` 标点、段落和语义标注，
+不是字幕换行。听完整句并检查：词内/人名内误停、句末该停未停、不同句子的重音和语气是否自然。
+ASR 逐字一致或静音检测通过不能代替听感检查。
 
+`fix_pauses.py`/`regen_fix.py` 是旧 F5 诊断/重录工具，以 CAPTIONS 行界为代理且可能自动重录；
+**不可因字幕行内出现停顿就自动判错，也不可因停顿位于换行处就放行。** 当字幕断行与批准语义边界不一致时，
+先对照 `vo` 记录可疑秒段，使用只读检测/时间戳诊断，核实实际声音后才局部重生成。
+这类旧工具不在 IndexTTS 整段成品上默认自动运行。具体规则与数字读法见 `references/voice-and-audio.md`。
+
+**旧F5句末漏停修复（仅后备引擎适用）。** 以下检测/插停顿代码不是 IndexTTS 的默认步骤；只有已听出真实
+句末漏停、且字幕定位与批准 `vo` 的语义边界一致时才局部使用。禁止为每个字幕换行机械插入0.22秒。
 **SECOND direction — 句末"该停没停" (added 2026-07-30, 选拍指南系列; user caught it by ear, the whole
 existing audit missed it):** `fix_pauses.py` only finds pauses in the WRONG place. F5-TTS ALSO **swallows
 the pause at a 。？！ boundary**, running two sentences together ("平衡多选择头轻。挥重按…" → 0.0s gap,
@@ -393,12 +429,12 @@ Three findings that cost a full debug cycle — don't repeat them:
    (`end[i]==start[i+1]`), so the gap is ~0 by construction → 46/54 scenes falsely flagged. `check_boundaries.py`
    uses ffmpeg `silencedetect` and maps each caption-line boundary to a TIME, then asks "is there a silence
    within ±0.28s of it".
-2. **Only 。？！ boundaries need a pause.** A caption line split at a ，(or at no punctuation at all) is a
-   DISPLAY break, not a breath — requiring silence there flags ~80% of all boundaries. Classify each boundary
+2. **旧检测器主要检查 。？！；批准文本中的显式语义停顿仍须另外核对。** A caption line split at a ，
+   (or no punctuation) is only a DISPLAY break, not automatically a breath — requiring silence there creates false alarms. Classify each boundary
    by looking up the punctuation in `vo` (map cap-space→vo-space with difflib + a ±3-char window; a naive
    char-count map breaks because captions use 阿拉伯 digits and vo uses 中文数字: "97"=2 chars vs "九十七"=3).
    Real defect rate on a clean 7-episode build: **24 defects / 54 scenes**, i.e. it happens constantly.
-3. **Regenerating the scene does NOT fix it — insert the pause surgically instead.** Each F5 take randomly
+3. **该次F5实测反复重录未改善，才采取局部插停顿；不能据此认定所有配音都只能后处理。** Each F5 take randomly
    swallows a DIFFERENT 句号 (measured: original take 1 bad boundary, 3 fresh takes 3-4 bad each; the
    original was the best take). `insert_pauses.py` (v2, rewritten 2026-08-02) splices 0.22s into the
    EXISTING wav — the rest of the take is untouched, so 音色/语气/其他停顿 are preserved.
@@ -411,13 +447,14 @@ Three findings that cost a full debug cycle — don't repeat them:
    繁体 transcription (原则→原則 shifts the word mapping).
 After fixing, durations change (+0.22s per accepted insert) → re-run `caption_times.py`, re-render those
 scenes, rebuild previews.
-**vo 写法 (2026-07-21/22 定稿):** clauses ≤20 chars separated by ,。 — **NEVER put "/" in `vo`**:
+**vo 写法：** 按批准文本的完整语义句/段生成，不以≤20字作为口播拆分上限。
+标点控制语气；额外停顿标注保存在独立说明，不写入被朗读的文本。**NEVER put "/" in `vo`**:
 F5 vocalizes each slash as an audible junk syllable (one scene grew 14 extras; regen_tts strips "/"
 defensively but don't write them). **ALL-CAPS acronyms = 顿号逐字母** in vo (NCAA→`N、C、A、A`,
 TCU→`T、C、U`; user ear-tested — hanzi phonetics and glued NCAA both rejected), CAPTIONS keep latin
 NCAA; regen_tts's acronym gate verifies every letter is heard. 读音有争议时:`clone.py say` 生成 3-4 个
-候选读法试听 wav 放项目根目录让用户点选 — 你没有耳朵,不要盲猜。用户报"生硬/音调不对"= 韵律问题:
-把 regen 提前收稿阈值 sim 0.88→0.95 强制满 5 稿择优。If scenes are regenerated AFTER previews,
+候选读法的完整句短样，核对实际声音；本次无法听音时请用户核验具体秒段，不能只凭ASR声称读音正确。
+用户报"生硬/音调不对"时分别检查断句、重音、语气与读音；不靠提高相似度或固定生成5稿判定自然度。If scenes are regenerated AFTER previews,
 rebuild `audio_master.wav` before final assembly (stale-master bug, 2026-07). 16G Mac 上 F5 连续跑会
 死机重启:必须加 `PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.7`(故意让 MPS 初始化失败回落 CPU — 慢但整机稳,
 不要"修复") + `caffeinate -i nice -n 10`,驱动脚本 `nohup … & disown` **分组独立进程 — 每进程 4 段**
@@ -460,10 +497,11 @@ python build/assemble_ambient.py build/audio_master.wav 0.15    # TTS voice mast
 # (voice-only render.py assemble / assemble-voice = drafts only, not the deliverable)
 # 6d. ALWAYS finish with the branded ending + 1080p60 re-encode (rule 11):
 python build/finalize_ending.py "$PROJ/<OUTPUT_NAME>"
-# 6e. 右下角口播数字人 (user standing rule 2026-08-03, 伊埃拉起默认加; 2026-09-02 起默认=无边框贴纸样式) — wav2lip-onnx-256:
-caffeinate -i nice -n 15 bash build/avatar_corner.sh "$PROJ/<OUTPUT_NAME>" build/audio_master.wav 0
+# 6e. 仅 brief 的 avatar_mode=corner 且此方案已批准时运行；none 完全跳过：
+# caffeinate -i nice -n 15 bash build/avatar_corner.sh "$PROJ/<OUTPUT_NAME>" build/audio_master.wav 0
 ```
-**数字人 (6e) — 默认贴纸样式 (2026-09-02 用户拍板, 老德美网一轮游 2026-08-31 首用)**: 用户真人模板 + 克隆声
+**数字人 (6e) — 仅选用 corner 时的样式，不是所有项目必加。** `none` 的成片与所有预览必须零数字人，
+不用旧缓存带回头像；AI配音仍按真实制作方式声明。以下贴纸样式是已选 corner 的历史样式: 用户真人模板 + 克隆声
 口播 → 对嘴 → 720×960 上半身取景 → RVM **透明抠像 + 14px 白描边** (亮度提亮 brightness+0.09/contrast×1.06
 已烘进 `matte_sticker.py`, 与封面头像 PIL ×1.22 同一规矩) → 缩到 **270×360 直接贴在右下角 (790,1568)**,
 躯干贴底出画; **不裁圆、不加白框、不加底色卡** (用户 2026-09-01 原话: "不要任何背景边框, 直接加到视频右下角,
@@ -522,6 +560,7 @@ names**, the win/trophy is YOUR player, the poster. For recorded takes, sync-spo
    比口播短 ~0.1s 会让 partA 少 6 帧, 脚本已用 tpad 兜底, 仍要读回 nb_frames 核对)。加上上面的音轨空洞自检一起跑。
    三帧只验证出现/消失时域；另按每种字幕/卡片布局和变更区域检查短时遮挡，依照
    [制作更新与局部修复](references/editorial-and-recovery.md#制作更新与局部修复)重验受影响预览。
+   `avatar_mode=none` 时反向检查预览/最终版无头像，跳过对嘴与数字人依赖检查。
 5. **Re-scan after EVERY duration change** — re-recording even ONE scene's voice changes all montage
    slice lengths and shifts every window: after any re-assembly, re-extract frames and repeat checks
    1+4 on the shifted windows. A full-screen "COACH" title card drifted into frame TWICE this way
@@ -555,144 +594,28 @@ a chapter list with timestamps + themes, appended to `小红书发布文案.md`.
   and confirm the scene chip/content matches the chapter title — never ship unchecked arithmetic.
 - Titles follow the copy-style rules (Arabic digits, natural phrasing, no hype).
 
-### 8. 双平台封面图 — deliver WITH the 发布文案, every video (updated 2026-08-04)
-**先做包装误读检查，再生成封面。** 单独看标题、封面文案和片头 chip，确认普通读者不会误解事件
-状态、时间或因果；“宣布告别赛季”不等于“已经退役”。修改时三处一起核对，不让旧 chip 继续误导。
-真实参考图先验身份、时期和清晰度；生成后复核是否仍像本人、文字有无错字、脸部与标题是否完整。
-保存参考来源、提示词和输出路径。具体见 [口播与包装](references/editorial-and-recovery.md#口播与包装)。
-**先按当前运行环境选生成入口, 这是硬分流规则:**
-- **由 Codex 制作** → 使用 Codex 内置 Image 2 / `image_gen`; 不为了生成图片另外打开 Web ChatGPT。
-- **由 Claude 制作** → 使用用户自己的 Web 版 GPT 项目生成; 保留原来的浏览器上传 reference +
-  网页取回流程, 不改用 Claude 本体画图。
-- 这条分流适用于封面、示意图和流程中所有需要 AI 生成的视觉素材; 用户在**当前项目明确指定另一种
-  入口**时才覆盖。真实比赛视频和真实照片仍按素材来源规则搜集, 不用 AI 冒充。
+### 8. 双平台封面图 — 文案、照片与排版一起验收
 
-网球人物故事必须把用户提供或已验证身份的真实照片作为 reference image; 目标是保留同一个人的真实
-身份特征并完成固定排版, 不是凭空画一个相似人物。Local `make_cover.py` 不是默认替代方案, 只有当前
-环境对应的 Image 2/Web GPT 多轮文字失败且用户明确同意时才用。
+制作或修改封面前必读 [references/cover-design.md](references/cover-design.md)。
 
-**一次独立生成两版, 禁止互裁:** 竖版 `3:4 1242×1656` + 横版 `4:3 1440×1080`; 横版必须重新构图,
-不能从竖版裁出来。竖版标题/副标题全部位于**画面上半部分**, 下半部分留给人物和完整服装; 横版文字
-放左侧、人物放右侧, 同样保证人脸、手和服装不被字压住。两版存入 `<project>/final/covers/`, 并复制
-`封面图-竖3x4.jpg`、`封面图-横4x3.jpg` 到**实际项目根目录**供 macOS 文件选择器直接上传; 不得只留在
-Codex 临时输出目录。保存后用 `identify`/`sips` 读回尺寸并逐字检查标题。
+- **按历史实际封面提取写法。** 查看本账号高播放与高涨粉作品的主/副文案和真实缩略图，不能用发布标题替代。
+  保留年龄/阶段、具体事件、成绩反差、日常观点或可回答的问题；主副标共同说明为什么值得看。
+  **不固定四字，也不强行≤6字/≤8字。** 信息明确、缩图可读才是要求，必要时分行/重排，不能删掉关键事实只剩抽象词。
+- **真人、赛事照片作为满幅背景融入封面。** 使用已核验身份、赛事/日期及使用依据的原始照片，优先本地裁剪、
+  调色、渐变与文字排版；保留真实人物像素。不能把小矩形照片或描边人像当贴纸贴在无关底板上。
+  孙心然、王曦雨等真人不能用“相似人物”的AI图代替；拉沃尔杯可用核验过的团队合影，旧照需标资料年份。
+- **图解议题按内容选择背景。** 赛历/名单/规则的封面可采用原创赛历或球场示意，不能因是话题片就自动套
+  “卡通背景+作者胸像”。作者胸像与旧贴纸格式只在当前用户明确选择时启用。
+- **两版独立排版。** 竖3:4 `1242×1656`、横4:3 `1440×1080`，同一批准文案分别适配；不互裁。
+  字体/色彩沿用账号风格，具体文字区随照片留白安排，避开脸、球拍和关键动作。
+- **真源与审批。** 主副标写入同一 canonical 脚本/包装记录；不得渲染时偷偷缩为四字。发布标题、封面、片头
+  所承诺的问题必须由视频回答；改动具体数字或人名同步核查。保存原照片、来源、文案版本与成图，全文/缩图都验。
 
-One consistent cover style across the account. The account typography is FROZEN — four text zones,
-only the 【】 slots vary per video:
-> 大标题「【主标,≤6字,压缩自小红书标题】」厚重宋体衬线白字深色描边 · 其下金色副标题「【副标,≤10字】」·
-> 左上角红棕圆角胶囊白字「网球故事」(不压标题) · 底部居中白字「【主人公人名】」两侧金色小圆点 ·
-> 竖版3比4 · 所有汉字逐字准确 · 除四处文字外无任何其他文字/水印/logo
-
-**封面选型 — 按内容类型选,不要一律套人物模板 (user rule 2026-07-22):**
-- **人物专题**(单一主角的故事)→ 上面的四区冻结模板原样用(胶囊+主标+副标+人名)。
-- **话题片/示意图/盘点/系列**(讲道理、讲数据、讲结构的片子)→ **默认走下面的「浅色卡通插画 + 本人胸像」
-  格式**(2026-09-04 用户拍板),**只保留主标+副标 — 不要「网球故事」胶囊、不要人名**,字体用现代粗黑体。
-- **群像**(如「NCAA 的魔力」这类以几位真实球员为主角的多人主题)→ 仍可用**多位主角头像特写拼版**(2-4 人竖条并排,
-  人脸取自已验证身份的素材帧或官方照片),同样只保留主标+副标。拼版自己合成好再注入 GPT(留出标题头部空间、
-  避开路人/新闻条;`ffmpeg -map_metadata -1` 剥掉 XMP 再 b64 分块注入)。用户没点名时先给两个方案让他选。
-- GPT 项目会惯性沿用老模板:prompt 必须显式写「这期不要胶囊、不要人名」;若它仍套错,不要重新生成,
-  用「基于你上一张生成的封面图修改:…」来纠正(重出图会连底图一起换掉)。
-
-**默认封面格式 — 浅色卡通插画 + 本人胸像贴左下 (2026-09-04 用户拍板, 网球奖金金字塔首用, 两版都通过):**
-三段都在 Web GPT 出图 + 本地合成 (Codex 环境用 `image_gen` 出同样的图), 顺序不能颠倒 —— 先有无人物底图, 再补人:
-① **插画底图 (不带人物)**: 竖版一条 prompt, 横版另起一条**重新构图** (禁互裁):
-  「浅色卡通插画风格, 浅奶油色底, 明快柔和的配色; 画面主体是【本片核心图形, 如: 分层的网球金字塔, 塔尖一张
-  14万美元支票和奖杯】; 主标题「【主标 ≤8字】」用现代粗黑体深色字, 其下副标题「【副标 ≤12字】」金黄色;
-  竖版3比4: 文字在画面上半部分, 图形在下半部分, **左下角留出约 1/4 画宽 × 1/3 画高的空白** (贴本人胸像用);
-  不要胶囊、不要人名, 没有其他文字/水印/logo, 所有汉字逐字准确。」横版 4:3 = 文字左、图形右, 左下角同样留空。
-  经 `cover_bridge.py` 取回 `final/covers/cover_v_raw.png` / `cover_h_raw.png` (GPT 出 1086×1448 / 1448×1086,
-  比例已对; 桥用 `python3 build/cover_bridge.py final/covers` 起, 取回法见下「成图取回本地」) → 逐字校验标题后再进 ②。
-  尺寸不用手动处理: ③ 的脚本会把 raw 等比缩放/居中裁到 1242×1656 / 1440×1080, 并存成 **`final/covers/
-  封面图-竖3x4_无头像.jpg` / `封面图-横4x3_无头像.jpg`** —— 这两张是唯一权威底图, 永远保留 (重贴胸像/换衣服只重跑 ②③);
-  换了新底图要加 `--refresh-backup` 覆盖旧备份。主标 ≤8 字、副标 ≤12 字按本格式算, 不套四区模板的 ≤6/≤10。
-② **本人半身形象 — 衣服每期轮换**: 项目根跑 `python3 build/cover_outfit.py --project <项目名>` (脚本随步骤 3 的
-  `cp scripts/* build/` 已在项目里; 没拷就用 `~/.claude/skills/vertical-commentary-video/scripts/` 绝对路径) → 按当月季节从
-  skill 的 `assets/cover-wardrobe.json` 挑一件最近 6 期没穿过的, 记进 `$PERSONAL_ASSETS/cover_outfit_history.json`, 并打印
-  **完整 prompt — 原样发送, 不要自己改写** (同项目重跑复用同一件, 换衣服加 `--renew`; 用户点名衣服先 `--list` 看衣柜再
-  `--pick <id|中文关键字>`, 关键字撞多件会列出候选; 加新衣服往 json 追加 `{id, zh, tags:[季节…]}`)。
-  参考照 **`$COVER_FACE_REF`** (默认 `$PERSONAL_ASSETS/cover_face_ref.jpg`, personal.env 配置; 本人正脸白底抠像, 制作见
-  `docs/ONBOARDING.md` 第2步) 用 **MODE A 第3步的 window.name 接力**贴进 GPT —— 下文「示意图类不要底图注入」说的是
-  插画底图不注入照片, 本人参考照仍然要传 —— 然后发打印出的 prompt (核心: 完全保留这张脸 → 补全肩膀双臂腰部以上 →
-  四周留白 → 穿【衣服】→ 纯白背景 → 竖版 3:4)。取回存 `final/covers/upper_body_raw.png`。**先与参考照比脸**: 像"另一个
-  相似的人"或被美化 → 「基于上一张修改: 脸换回参考照, 其余不变」, 不要重出。
-③ **合成**: 项目根跑
-  `python3 build/cover_bust.py --figure final/covers/upper_body_raw.png --v final/covers/cover_v_raw.png --h final/covers/cover_h_raw.png`
-  (第二次起 `--v/--h` 换成 `_无头像.jpg`; 只补横版就只给 `--h`)
-  → macOS Vision 抠像 (skill `scripts/figure_tool.swift`, 首次自动 swiftc, 需 Xcode CLT) → 按脸框自动裁**"胸部及以上"** (胸线 = 脸底 +
-  1.22×脸高, 拍板样张反算) → 7px 奶油色描边 → **左下角贴底** (竖版人物高 620px @x=30, 横版 470px @x=40) →
-  `封面图-竖3x4.jpg` / `封面图-横4x3.jpg` 写到项目根并同步 `final/covers/`。裁高手动改 `--chest-y`/`--chest-frac`,
-  大小改 `--v-height/--h-height`, 靠右 `--anchor right`。
-  **缩图 Read 复查 (必做)**: 脸是本人; 描边完整无断; 胸像**不压主标/副标/核心图形** (压到 → 缩 height 或让 GPT
-  「基于上一张修改: 左下角留空」重排底图); 人物底边贴底不悬空; 两版尺寸读回正确。
-踩过的坑 (2026-09-04): 直接裁参考照的肩/手臂贴上去有"两边被切掉"感 → 用户否决, 必须让 GPT 补全整个上半身再本地裁;
-"半身只到胸、放大"是拍板构图 (腰以上整身贴上去太小); 参考照必须是正脸+白底抠像, GPT 才会原样保脸;
-Vision 对 GPT 白底图抠得很干净 (instances=1), 真实杂背景照片要先看 alpha bbox 是否只框到人。
-
-**系列/示意图类封面 — 仍按运行环境分流生成 (2026-08-04):**
-封面主体是图表/示意图(非真人照片)时, **底图不走 MODE A 的照片注入** —— 把版式和每张的图形内容用文字描述清楚,
-Codex 用内置 Image 2 / `image_gen`; Claude 在 Web GPT 中生成 (单期封面竖横各一条 prompt; 系列多张海报才一条 prompt
-出整套)。底图出完仍按上面「默认封面格式」② 上传本人参考照补胸像。
-底图注入(压缩→b64→分片)每张要 10+ 次
-调用且分片会被静默截断, 只在必须保留真人实拍时才值得。
-**成图取回本地 — 用 `cover_bridge.py`, 三个条件缺一不可 (2026-07-30 实测定论):**
-① 页面内 `fetch(img.src)`→FileReader→dataURL (图片是同源要 cookie 的 backend-api URL, 服务端 curl 拿不到);
-② `<form>` **顶层提交, 不带 target** —— `target=_blank` 被弹窗拦、`target=<iframe>` 被 CSP frame 限制挡,
-   两者都**静默失败**(submit 不报错但文件不落盘), 只有顶层提交能过 `form-action`;
-③ 桥**返回 204 No Content** —— 返回 200+body 会让页面跳转到 127.0.0.1, ChatGPT 页面和 JS 状态全丢;
-   返回 204 浏览器停在原页面, 于是能在一个 JS 调用里 for 循环把 7 张全下完。
-(`a.download` 在 in-app 浏览器被沙箱吃掉; `file_upload` 白名单拒绝项目文件; 取 accessToken 本地 curl 会被
-harness REDACT —— 这三条确实不通, 但**不要**因此断言"图取不回来"。)
-
-**MODE A — 真实照片 reference + 环境对应生成器 (网球人物故事默认):**
-1. **Find the real photo**: the subject's IG / official collab posts (@wta·@wimbledon×player "champion"
-   posts are gold) / a full-res frame from own footage. Prefer 竖版, high-emotion 夺冠特写 (捧杯/举杯/
-   泪目). Identity-verify via the rule-3 ladder. Download: IG scontent → hidden-form POST the signed URL
-   to `scripts/cover_bridge.py` (server-side fetch works for IG, unlike oaiusercontent).
-   **⚠ 人物故事参考图两条硬性要求 (user rule 2026-08-10, 伊埃拉深度分析复盘):**
-   ① **必须能看清主人公的脸** — 正脸/近正脸、清晰、无遮挡; 侧脸低头、被奖杯/话筒挡脸、
-     人物太小的帧一律不合格 (首版用了捧杯走场帧, 脸偏小侧向, 用户换成正脸挥手照);
-   ② **必须是近期照片** — 近一年内/当前赛季形象 (发型、球衣、赞助商都在变, 旧照会显得不像本人)。
-   两条不满足时继续找, 不要拿"高情绪但看不清脸"或"清楚但过时"的图凑数; 用户主动提供的照片优先。
-2. **Codex 路径:** 直接调用内置 `image_gen` 编辑 reference image。Prompt 必须明确锁住人物的脸型、
-   五官、肤色、发型、体型、原照片服装/姿势与场景, 只允许为适应版式做背景延展和文字设计。生成后
-   全分辨率比对脸、服装和手; 人物变成“像她的另一个人”就定点编辑/重生, 绝不交付。
-3. **Claude 路径 — 必须使用 Web ChatGPT, 首选 window.name 接力 (2026-08-02 实证, 见 memory
-   `cover-inject-window-name-relay`)**: 图所在目录起 `python3 -m http.server` → 新标签开
-   `http://127.0.0.1:<port>/<img>` 并在页内 fetch→FileReader→`window.name=dataURL` → **同一标签**导航到
-   chatgpt.com(window.name 跨域存活; CSP 挡的是 chatgpt 去 fetch localhost, 不挡 localhost 页自己 fetch)
-   → 读 window.name→atob→File→DataTransfer→对 `#prompt-textarea` 派发 paste 事件。旧法(压缩 ≤20KB →
-   base64 → **3200-char chunks** 分片注入, ~16 次调用)只留作 window.name 被占用时的后备:
-   (`window.__P+='...'`, verify cumulative length EVERY call — longer self-authored literals silently
-   truncate) → `atob`→`Uint8Array` (check JPEG magic 0xFFD8) → `new File`→`new DataTransfer` →
-   dispatch `ClipboardEvent('paste',{clipboardData:dt})` on the focused `#prompt-textarea` → confirm
-   the attachment thumbnail appears (screenshot). ~10 tool calls.
-4. **Prompt** (one line, insertText): 「以我附上的这张她本人的真实夺冠照片为封面底图:保留照片里真实的
-   人物、姿势和球场背景,不要重绘、替换或美化人物,只在这张照片上做封面排版——【四处文字模板】;画面按
-   竖版3比4输出,主标题和副标题完整放在画面上半部分,可在上下用照片的虚化延展补足空间,所有汉字必须
-   逐字准确。」横版另起一次生成: `4:3, 文字左、人物右`, 不复用竖版裁切。
-5. **逐字+身份校验 (MANDATORY):** download/read the result (Web 路径用 in-page
-   `fetch(img.src)`→b64→form-POST to the bridge; async JS must write to `window.__r`, direct await
-   returns `{}`), crop the four text zones at FULL resolution, Read them, check EVERY character, then
-   compare the face/outfit with the reference. Any wrong/extra/missing char or identity drift → targeted
-   edit/regenerate. 输出双封面到项目目录并与 `小红书发布文案.md` 一起交付。
-
-**MODE B — 全AI直出 (fallback when no usable real photo exists):** 生成入口仍严格按环境分流
-(Codex=`image_gen`; Claude=Web GPT), then use the same four-text-zone template plus
-人物主体描述【外形+本片高光瞬间特写】+ 写实电影感【光线/场景】+ 人物占中下2/3、头顶不碰副标题。
-高光瞬间 = the video's emotional peak (夺冠=举杯, 逆转=怒吼, 告别=背影…). Pose language must be
-PRECISE (高举过头顶≠捧起≠端着 — "捧起" rendered as 端盘子 once). Pose/composition fixes = EDIT the
-previous image (「基于你上一张生成的封面图修改:【改动】,其余全部不变」), never re-prompt from scratch.
-
-**MODE C — ONLY with the user's explicit approval, never on your own initiative (demoted 2026-07-16):**
-if 4o repeatedly mangles text after regeneration attempts, ASK the user; only if they approve, request
-the art 不带任何文字 + 顶部1/4负空间, then burn typography locally with `scripts/make_cover.py <base>
-封面图.jpg "主标" ["副标"] ["人名"] [角标]` (Songti SC Black/Bold, gold sub, tracked name + gold dots,
-#C4563A pill, 1242×1656).
-
-**Composer gotchas (each one happened):** `computer type` can silently DROP characters (「21」+parens
-vanished) and cmd+A-delete can fail so text ACCUMULATES → always `javascript_tool` with
-`execCommand('selectAll')+('delete')+('insertText',P)`, VERIFY key substrings in `#prompt-textarea`
-innerText, then JS-click `button[data-testid="send-button"]`. Newlines auto-send — ONE line only.
+两版存入 `<project>/final/covers/`，项目根保留 `封面图-竖3x4.jpg`、`封面图-横4x3.jpg` 便捷副本。
+读回尺寸，逐字校对并检查背景融合、真实身份、脸部遮挡、标题完整性，再随发布文案交付。
+需要AI原创图解/明确授权的AI编辑时按运行环境选生成器：Codex=`image_gen`，Claude=用户Web GPT；
+不能用AI生成工具重新画真实运动员，也不能把生成失败当作必须交付假人物的理由。原照片本地排版无需反复请批。
+当前任务只有复盘/观察时，以上只作为后续制作要求，**不修改已发布封面**。
 
 ### 9. 发布 — when the user asks to publish, use the `publish-xhs-douyin` skill
 读取 `publish-xhs-douyin`，把已批准五件套、章节、当前对话的发布授权、指定 tags 和准确北京时间交给
@@ -727,7 +650,7 @@ mapping → regen mid-line-pause scenes; the step-3 prosody pass) · `preview_pa
 预览_A….mp4, voice+ambient, `PART_MAP`-aware — the segment-preview checkpoint) · `build_photos.py`
 (photo→video Ken-Burns via PIL subpixel affine — user-request ONLY now, rule 9: stills default to pure
 static `-loop 1`; zoompan always banned) ·
-`cover_bust.py` (默认封面格式的本人胸像合成: Vision 抠像→按脸框裁胸以上→奶油描边→左下贴底, 输出双封面+`_无头像`备份) · `cover_outfit.py` (胸像衣柜: 按季节轮换/避重/同项目复用, 打印 GPT 补全半身 prompt; 衣柜 `assets/cover-wardrobe.json`) · `figure_tool.swift` (macOS Vision cutout/face, 由 cover_bust 自动编译) · `make_cover.py` (小红书封面本地排版 — MODE C, explicit user approval only) · `cover_bridge.py`
+`cover_bust.py` (仅用户当前明确选用的旧作者胸像格式: Vision 抠像→按脸框裁胸以上→奶油描边→左下贴底, 输出双封面+`_无头像`备份) · `cover_outfit.py` (胸像衣柜: 按季节轮换/避重/同项目复用, 打印 GPT 补全半身 prompt; 衣柜 `assets/cover-wardrobe.json`) · `figure_tool.swift` (macOS Vision cutout/face, 由 cover_bust 自动编译) · `make_cover.py` (旧单版排版：清晰照片缩小贴到底板上，不适用于新的满幅照片背景要求；按 cover-design.md 选合适排版) · `cover_bridge.py`
 (localhost 图片下载桥, ChatGPT/IG 签名URL专用) · `publish_bridge.py` (发布桥: 本地文件服务器喂
 成片/封面给创作者后台上传控件, CORS+PNA 头齐全 — the publish workflow itself lives in the
 `publish-xhs-douyin` skill) ·
