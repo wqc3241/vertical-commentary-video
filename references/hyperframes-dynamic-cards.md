@@ -6,13 +6,21 @@
 HyperFrames 负责"要动起来才讲得清"的内容：弹跳轨迹、数据条生长、数字滚动、对比演示、流程图。
 选型判据：画面是**演示一个过程/对比**→HyperFrames；画面是**一屏静态数据**→老 PIL 卡也行。
 
+## 与真实画面的职责
+
+HyperFrames 是解释工具，不是整期网球比赛解析的默认画面。关键技战术判断先有可用真实回合/自摄证据，
+卡片补充球路、比分、赛历或对比；动画精致、check全绿也不能弥补没有比赛证据或口播单调。
+每张卡说明为哪个判断服务，删除只重复口播的卡片。引用数字对应事实清单，不把原创示意伪装成真实比赛。
+比赛素材权限或身份不足时按 [footage-sourcing.md](footage-sourcing.md) 提出替代方案，先过素材门，
+不能以全卡片版静默替代用户要求的真实比赛版。
+
 ## 一次性前置（已装好, 2026-08-09）
 - Node 22+（本机 v24）。HyperFrames 官方 agent skills 已装进 `~/.claude/skills/`
   （hyperframes 路由 + core/animation/cli 等 8 个核心 + motion-graphics 工作流）。
 - 缺失/过期时：`npx hyperframes skills update`（核心集）/ `npx hyperframes skills update motion-graphics`。
 - 写组合 HTML 前必读 `/hyperframes-core`（组合契约）；本文只记本管线的集成规矩，不复述其契约。
 
-## 账号样式 — frame.md 冻结（对应封面"四区冻结模板"的动效版）
+## 账号样式 — 沿用 frame.md 的色彩/字体，不继承封面固定字数
 模板与样式规范在 skill 仓库 `assets/hyperframes-card-template/`：
 - `frame.md` — 冻结色板/字体/组件语法（CLAY `#C4563A`/GOLD `#E2BC68`/暖白 `#F8F6F3`/暖黑底/
   Hiragino Sans GB W6/胶囊 chip/行条面板）。每张新卡从这里继承，不要每期重新发明配色。

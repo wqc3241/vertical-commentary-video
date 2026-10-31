@@ -1,8 +1,41 @@
 # Voiceover & audio
 
-Three ways to get the narration. **Default to the cloned voice.**
+Three ways to get narration. **Default to the user's cloned voice; current engine is IndexTTS-2**
+按 SKILL.md 的整句/语义段落方式生成；F5 是点名音色或引擎故障时的后备，不自行切回旧逐短句模式。
 
-## A) Cloned voice (default) — F5-TTS, the user's own voice
+## 批准文本、断句与读音门（所有配音引擎必读）
+
+1. **一份 canonical 文本。** 批准稿里的 `vo` 标点、段落和明确的语义停顿是口播真源。
+   按完整句/语义段落生成，保留句内语气；不能按字幕宽度、字数、卡片切换或镜头时长切碎句子。
+   CAPTIONS 只是显示换行，数字用阿拉伯形式；停顿标注另存，不把 `/`、拼音注释或“停顿”念出来。
+   必须切批时选择已批准的句末/语义边界；不能截在姓名、数量词、主谓或紧密短语中间。
+2. **先判读法再配音。** 逐稿抽取数字、人名/昵称、外文缩写、多音字，按语境写出显示形式→口播形式。
+   名称沿用用户确定的叫法，仍需确认正确声调；新姓名用可靠词典、本人/官方读音等依据核实，不凭汉字外观猜。
+   未解决的读音列明并保留，正式整批配音前解决。
+
+   | 显示与语境 | 口播示例 | 不能混用 |
+   |---|---|---|
+   | 只拿2分（数量） | 只拿两分 | 二分 |
+   | 2个破发点、2次 | 两个破发点、两次 | 全局机械转成二 |
+   | 局/盘比分2比1 | 二比一 | 自动替换所有二为两 |
+   | 第2盘、第2名 | 第二盘、第二名 | 第两盘 |
+   | 单盘6-3、抢七7-2 | 六比三、七比二 | 数字逐个读/英语读数 |
+   | 2026年、10月2日 | 二零二六年、十月二日 | 按普通数量读年份 |
+   | 15%、1.5小时 | 百分之十五、一个半小时 | 脱离单位读数 |
+
+   这是语境示例，不是全局替换表；“二分之一”等固定表达保留其正确读法。排名还要核查排名种类与统计日期。
+   在已有脚本/核查记录中保存关键读法、依据及TTS输入；拼音纠正只改变读法输入，不偷偷更换昵称或原句。
+3. **完整句短样。** 两个制作门通过后，先合成含比分、数量词、关键姓名和句末停顿的代表性完整句/短段，
+   核对实际发音、重音和停顿后再跑整批；正确的模板读法不能代替新文本检查。试听争议保留2–3个有依据候选。
+4. **逐场景实际声音验收。** 数字边界、两/二、前后鼻音、多音字逐项对照；ASR可能把“两分/二分”同归为2分，
+   也可能把错声调转成同一人名，归一化/拼音相似度绿灯不是发音正确证据。不要把这两类错误归一化掉。
+   听每个完整句以及场景衔接，检查词内误停、句末漏停、切音、语调复位和赶字；不能只听独立数字小样。
+   本次工具无法听音时明确尚未核验，给出文件和秒段供用户验收，不声称“已听过/发音已确认”。
+5. **局部修复。** 先区分事实/文字错、读法错、韵律错和ASR误报；只修受影响句/语义段。修读法保存可追踪映射，
+   修文案同步 canonical 源；重建该段字幕、母带、受影响预览和素材窗口，不能拿旧母带发布。
+   没有获得实际声音通过记录时，不把机器转写通过当成 `publish_ready`。
+
+## A) F5 cloned voice — 后备引擎，用户自己的声音
 A permanent home lives at `/Volumes/Storage/voice-clone/`:
 - `venv/` — Python 3.13 venv with `f5-tts`
 - `clone.py` — the engine (modes: `say "文本" out.wav` | `scenes <build_dir>`)
@@ -34,8 +67,8 @@ One-off line: `... clone.py say "要合成的中文" /tmp/x.wav`.
 
 **Names / polyphones can be mis-voiced — test, don't assume (2026-07: "德约"→"德于").** F5-TTS read the
 Djokovic nickname **德约** (dé-**yuē**) as **dé-yú** ("等于/德于") — the polyphone 约 came out wrong, and the user
-caught it. When a name/term matters, synth 3-4 candidate spellings in a carrier sentence, whisper each, and pick
-the one whose ASR comes back right (wrong reading shows up as a different homophone — 德于/德月/德腰). Fixes that
+caught it. When a name/term matters, verify the intended reading first, synth a few evidence-based candidates in a carrier
+sentence, and listen; ASR is only an auxiliary check (wrong reading shows up as a different homophone — 德于/德月/德腰). Fixes that
 work: use a spelling the model gets right (here the user's other nickname **老德** lǎo-dé, which also fit the
 "39-year-old veteran" theme), or the full name. **Change BOTH `vo` and the matching CAPTION** so audio and text
 stay consistent (never leave the caption showing the old name). This is separate from the reference-clip **leak**
@@ -63,25 +96,17 @@ default to it.
 Note: F5-TTS has a buggy interpreter teardown (`config_init_hash_seed`) that fires AFTER the wav is
 written — `clone.py` hard-exits 0 to hide it. The output is fine.
 
-## 断句/语气 audit — MANDATORY after TTS, before captions (2026-07-16; produced "完成度非常高" audio)
-F5-TTS occasionally inserts a prosody break MID-phrase ("深圳|女孩", "李慧|说") even when the transcript
-verifies clean. Whisper word-gap timestamps CANNOT catch these (the gaps hide inside word spans) — audit
-the ACOUSTICS instead. `fix_pauses.py` (+`fix_pauses_lib.py`, `regen_fix.py` for targeted re-takes), run
-with the voice-clone venv:
-1. **Detect real pauses**: ffmpeg `silencedetect=noise=-34dB:d=0.24` per scene wav (tightened 2026-07-21).
-2. **Map pauses to the 断句**: whisper word timestamps + difflib `SequenceMatcher` align the transcript
-   to the caption lines (survives digit/homophone/traditional-script drift), giving each caption-line
-   boundary a time. Boundary matching must be EXACT — a ±1-word tolerance masked a real "李慧|说" break.
-3. **Judge**: a pause AT a "/" line boundary = correct prosody, keep. A pause INSIDE a line = break →
-   regenerate that scene (same anti-leak flow as regen_tts: synth → whisper-verify → keep best take)
-   until the audit reports ZERO intra-line pauses.
-Upstream rules that make this work: clauses ≤20 chars, separated by ,。 ONLY — **never write "/"
-breath markers in `vo`**: F5 vocalizes each slash as a junk syllable (2026-07-21, one scene grew 14
-extra syllables; regen_tts now strips "/" defensively). The audit's boundaries come from CAPTIONS
-lines. Letter-gaps inside a 顿号-spelled acronym (N、C、A、A) are legitimate micro-pauses —
-regen_tts exempts gaps whose context contains a latin letter, or the zero-gap gate would kill every take.
-If any scene is regenerated after previews, REBUILD `build/audio_master.wav` (concat in scene order)
-before final assembly — a stale master silently ships the old takes.
+## 断句/语气 audit — 生成后、字幕前
+
+所有引擎都以本文件开头的批准文本/读音门验收；模型输出的随机停顿不覆盖批准断句。
+ffmpeg `silencedetect` 可找可疑停顿，Whisper/difflib 可辅助定位；停顿须映射到批准 `vo` 的语义边界，
+不能仅依据 CAPTIONS 换行。逗号允许自然轻连读，句末应有合适停顿/语气收束；不强制所有句子相同静音长度。
+
+旧 `fix_pauses.py`/`fix_pauses_lib.py`/`regen_fix.py` 以字幕行界为代理且可能自动重录，只在已确认行界
+与语义边界一致的 F5 后备项目中适用。未确认时只读检查，禁止循环自动重录直到“行内静音为零”。
+旧 `insert_pauses.py` 是 F5 的局部后处理工具，不默认用于 IndexTTS 整段模式；确需修复时先定位真实句末，
+不得切进字中间或用等长静音掩盖断句错误，修后听接缝并更新 durations/captions/母带/受影响预览。
+任何预览之后的重配音都要重建 `audio_master.wav`，防止旧录音随成片交付。
 
 ## Ambient 轻原声 — the deliverable ALWAYS carries it (2026-07 standard)
 The final video beds each clip's ORIGINAL audio (ball strikes, crowd, ceremony speech) under the
@@ -144,10 +169,9 @@ build/capjson` and re-run.)
 - **ALL-CAPS 缩写在 `vo` 里一律写成顿号分隔的逐字母**:NCAA → `N、C、A、A`,TCU → `T、C、U`。
   字幕仍显示 NCAA/TCU。已被用户否掉的写法:汉字注音(恩西诶诶,"听感不像英文字母")、连写 NCAA(乱拼)、
   空格 `N C A A`(不稳)。regen_tts 的缩写门会校验每个字母都被 whisper 听到(听成 "NCA" 即废稿重掷)。
-- **你没有耳朵——读音争议不要盲猜**:用 `clone.py say` 批量生成 3-4 种候选读法的同句试听 wav
-  (放项目根目录,命名 `XX读法试听1_描述.wav`),让用户点选,一轮定案。
-- **"生硬/音调不对" 类反馈**:读法本身对、韵律差 → 把 regen 的提前收稿阈值从 sim≥0.88 提到 0.95,
-  强制每段满 5 稿,在全部过门的稿里取最高 sim(v7 实测 S9C 首稿 1.000、S1B 0.976)。
+- **读音争议先核实，再试听。** 完整句候选 WAV 放项目目录，记录依据及具体秒段；本次无法听音时请用户核验，不能盲猜。
+- **“生硬/音调不对”**：检查批准断句、语义重音和句内连贯性；有根据地局部重录。ASR相似度不衡量自然度，
+  不把最高sim或固定五稿当通过标准。
 - 转写核对的假警报清单新增:whisper 把"一百"写成"100"(归一化里做 一零零→一百),繁体输出(归一化表),
   顿号字母被写成 "NCAA"(这是**正确**信号,说明读音就是字母音)。
 
